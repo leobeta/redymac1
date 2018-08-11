@@ -1,0 +1,468 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.macropartes.dao.MacropartesDao">
+
+	<!-- INI LEOBETA -->
+
+	<select id="getPermisosUsuario" resultType="com.gci.siarp.macropartes.domain.Permisos">
+		select prg, actcant,
+		interfas, cap from usuarios where usuario = #{username}
+	</select>
+
+	<select id="getMaxNumeroPedido" resultType="int">
+		SELECT dato AS
+		maxprogramacion FROM consecutivos WHERE detalle = #{detalle}
+	</select>
+
+	<select id="getPedidosPorID" resultType="com.gci.siarp.macropartes.domain.Pedido">
+		SELECT p.item,
+			p.referencia,
+			p.descripcion                      AS nombre,
+			p.ciudad,
+			p.cantidad,
+			p.orden,
+			p.sigla,
+			p.dir,
+			p.consumo,
+			cantidad,
+			CASE p.dir 
+				WHEN 0 
+				THEN 'PENDIENTE' 
+				ELSE 
+				CASE p.cantidad - p.consumo 
+					WHEN 0 
+					THEN 'DISPONIBLE' 
+					ELSE 
+					CASE 
+						WHEN p.consumo > 0 
+						THEN 'TRANSITO' 
+						ELSE 'AUTORIZADO' 
+					END 
+				END 
+			END                                    AS estado,
+			p.tercero                          AS nit,
+			pr.CLI_NOMBRE                      AS razonsocial,
+			pr.CLI_TELEFONO+' '+pr.CLI_CELULAR AS telefono,
+			pr.CLI_ZONA                        AS ciudadnit,
+			pr.CLI_DIRECCION                   AS direccion,
+			pr.CLI_EMAIL                       AS email 
+		FROM programacion_consolidada p 
+				INNER JOIN PROVEDORES pr 
+				ON p.TERCERO = pr.CLI_CEDULA 
+		WHERE consecutivo = #{consecutivo}
+	</select>
+
+	<select id="getAllProveedores" resultType="com.gci.siarp.macropartes.domain.Proveedor">
+		select cli_cedula as
+		identificacion, cli_nombre as razonsocial, cli_telefono + ' ' +
+		cli_celular as telefono, cli_direccion as direccion, cli_zona as
+		ciudad, cli_email as email from provedores order by cli_nombre
+	</select>
+
+	<select id="getEmpresasById" resultType="com.gci.siarp.macropartes.domain.Proveedor">
+		select cli_cedula as
+		identificacion, cli_nombre as razonsocial, cli_telefono + ' ' +
+		cli_celular as telefono, cli_direccion as direccion, cli_zona as
+		ciudad, cli_email as email from provedores where cli_cedula = #{id}
+	</select>
+
+	<select id="getAllCiudades" resultType="com.gci.siarp.macropartes.domain.Ciudad">
+		SELECT
+		departamento+ciudad as divipola, ciudad, descripcion, departamento
+		FROM CIUDADES order by descripcion
+	</select>
+
+	<select id="getAllReferencias" resultType="com.gci.siarp.macropartes.domain.Referencia">
+		select referencia,
+		max(item) item, max(referencia+' '+nombrep) referenciacompuesta,
+		max(nombrep) nombre
+		FROM REFERENCIAS group by REFERENCIA order by REFERENCIA
+	</select>
+
+	<select id="getReferenciaById" resultType="com.gci.siarp.macropartes.domain.Referencia">
+		SELECT item, nkey,
+		referencia, nombre, codigo FROM REFERENCIAS WHERE item = #{id}
+	</select>
+
+	<select id="getItemByReferencia" resultType="String">
+		SELECT top 1 item
+		FROM REFERENCIAS WHERE referencia = #{referencia}
+	</select>
+
+	<select id="getNombreById" resultType="String">
+		SELECT top 1 nombre FROM
+		REFERENCIAS WHERE referencia = #{referencia}
+	</select>
+
+	<select id="getReferenciasById" resultType="String">
+		SELECT referencia
+		FROM REFERENCIAS WHERE item = #{id}
+	</select>
+
+	<select id="getNombreCiudad" resultType="String">
+		SELECT descripcion from
+		ciudades where ciudad = #{municipio} and departamento =
+		#{departamento}
+	</select>
+
+	<insert id="crearProgramacion">
+		INSERT INTO PROGRAMACION (sigla, orden, ciudad,
+		referencia, descripcion, cantidad, año, mes, item, consecutivo,
+		bloqueo, dir, consumo, fecha, usuario, observacion, cantidadasignada,
+		tercero)
+		VALUES(#{sigla}, #{orden},#{ciudad}, #{referencia}, #{descripcion}, #{cantidad},
+		year(getdate()), month(getdate()), #{item}, #{consecutivo}, 0.0, 0,
+		0.0, getdate(),#{username}, #{observacion}, 0, #{tercero})
+	</insert>
+
+	<select id="crearProgramacionConsolidada">
+		insert into programacion_consolidada (referencia,
+		item, cantidad, sigla, orden, ciudad, descripcion, año, mes, bloqueo,
+		dir, consumo, consecutivo, fecha, usuario, observacion, cantidadasignada, tercero)
+		(select referencia, item, sum(cantidad), sigla, orden, ciudad, descripcion, año, mes, bloqueo, dir, consumo, #{consecutivo} as consecutivo, 
+    		convert(DATE,p.FECHA, 103) as fecha, usuario, observacion, cantidadasignada, tercero
+	      from PROGRAMACION p
+	     where p.CONSECUTIVO = #{consecutivo}
+	  group by referencia, item, sigla, orden, ciudad, descripcion, año, mes, bloqueo, dir, consumo, 
+	    convert(DATE,p.FECHA, 103), usuario, observacion, cantidadasignada, tercero)
+	</select>
+
+	<update id="actualizarConsecutivo">
+		update consecutivos set dato = #{consecutivo} where
+		detalle = #{detalle}
+	</update>
+
+	<select id="getPedidosPorIDReporte" resultType="com.gci.siarp.macropartes.domain.PedidoReporte">
+		select p.item,
+		p.referencia, p.descripcion as nombre, p.ciudad, p.cantidad, p.orden,
+		p.sigla, p.tercero as nit,
+		pr.cli_nombre as razonsocial, pr.cli_direccion as direccion, pr.cli_telefono+'
+		'+pr.cli_celular as telefono,
+		pr.cli_email as email, p.fecha as fechaPedido
+		from programacion p
+		inner join provedores pr
+		on p.tercero = pr.cli_cedula where consecutivo = #{consecutivo}
+	</select>
+
+	<delete id="eliminarPedido">
+		DELETE FROM programacion WHERE consecutivo =
+		#{consecutivo} and dir = 0
+	</delete>
+
+	<delete id="eliminarPedidoConsolidado">
+		DELETE FROM programacion_consolidada WHERE
+		consecutivo = #{consecutivo} and dir = 0
+	</delete>
+
+	<update id="autorizarProgramacion">
+		UPDATE programacion SET dir = 1 WHERE consecutivo =
+		#{consecutivo}
+	</update>
+
+	<update id="autorizarProgramacionConsolidada">
+		UPDATE programacion_consolidada SET dir = 1 WHERE
+		consecutivo = #{consecutivo}
+	</update>
+
+	<select id="getLogoUsuario" resultType="String">
+		select logo from usuarios
+		where usuario = #{username}
+	</select>
+
+	<!-- FIN LEOBETA -->
+
+	<select id="buscaCiudades" resultType="com.gci.siarp.macropartes.domain.Ciudades">
+		select descripcion as
+		nombre from CIUDADES order by descripcion
+	</select>
+
+	<select id="buscaServiteca" resultType="com.gci.siarp.macropartes.domain.Serviteca">
+		select NOMBRE as
+		nombre,codigo as codigo from SERVITECAS ORDER BY NOMBRE
+	</select>
+
+	<select id="buscaMarca" resultType="com.gci.siarp.macropartes.domain.Marca">
+		SELECT NOMBRE as nombre FROM
+		MARCAS ORDER BY NOMBRE
+	</select>
+
+	<select id="buscaModelo" resultType="com.gci.siarp.macropartes.domain.Modelo">
+		select NOMBRE as nombre from
+		modelos order by NOMBRE
+	</select>
+
+	<select id="buscaSiglaEnProgrfamacion" resultType="com.gci.siarp.macropartes.domain.Programacion">
+		select
+		CANTIDAD as cantidad,REFERENCIA as referencia,ITEM as item from
+		PROGRAMACION where SIGLA = #{sigla} order by REFERENCIA
+	</select>
+
+	<select id="buscaCodigoNombreP" resultType="com.gci.siarp.macropartes.domain.Referencias">
+		select CODIGO as
+		codigo,NOMBREP as nombre from REFERENCIAS where REFERENCIA =
+		#{referencia}
+	</select>
+
+	<select id="buscaStok1" resultType="com.gci.siarp.macropartes.domain.Stock">
+		select STOCK as stock from
+		REFERENCIAS_STOCK where CODIGO = #{codigo}
+		and bodega = #{bodega}
+	</select>
+
+	<select id="actualizaStok" resultType="int">
+		update REFERENCIAS_STOCK
+		set STOCK = #{stock},stock_anterior = #{stockAnterior}
+		where CODIGO = #{codigo}
+		and bodega = #{bodega}
+
+		SELECT @@rowcount
+	</select>
+
+	<select id="actualizaStokGeneral" resultType="int">
+		update REFERENCIAS
+		set STOCK_ANTERIOR = #{stockAnterior}, STOCK = #{stockActual}
+		where
+		CODIGO = #{codigo}
+
+		SELECT @@rowcount
+	</select>
+
+	<select id="actualizaStokGeneralAnterior" resultType="int">
+		update
+		REFERENCIAS set STOCK_ANTERIOR = #{stockAnterior}, STOCK =
+		#{stockActual}
+		where CODIGO = #{codigo}
+
+		SELECT @@rowcount
+	</select>
+
+	<select id="buscaStokGeneralActualAnterior" resultType="com.gci.siarp.macropartes.domain.Ars">
+		select
+		STOCK as stockGeneralActual,STOCK_ANTERIOR as stockGeneralAnterio from
+		REFERENCIAS where CODIGO = #{codigo}
+		SELECT @@rowcount
+	</select>
+
+	<select id="generaNumeroDeOrden" resultType="com.gci.siarp.macropartes.domain.NumeroDeOrden">
+		select
+		consecutivo,prefijo,consecutivo+1 as consecutivoMasUno from SERVITECAS
+		where prefijo = (
+		select prefijo from USUARIOS where usuario = #{usuario})
+	</select>
+
+	<select id="generaActualizaNumeroDeOrden" resultType="int">
+		update
+		SERVITECAS set CONSECUTIVO = (
+		select consecutivo+1 from SERVITECAS where prefijo = (
+		select prefijo from USUARIOS where usuario = #{usuario}))
+		where PREFIJO =
+		(select PREFIJO from SERVITECAS where prefijo = (
+		select prefijo from USUARIOS where usuario = #{usuario}))
+
+		SELECT @@rowcount
+	</select>
+
+
+	<select id="buscaNumeroOrden" resultType="int">
+		select count(NORDEN)
+		from GENERAL where NORDEN = #{numOrden}
+	</select>
+
+	<select id="guardaArs" parameterType="com.gci.siarp.macropartes.domain.Ars"
+		resultType="int">
+		insert into GENERAL(
+		FECHASERVICIO,
+		NCOM,
+		CIUDAD,
+		SERVITECA,
+		UNIDAD,
+		RECIBE,
+		SIGLA,
+		MARCA,
+		LINEA,
+		NORDEN,
+		DES_REF,
+		DISEÑO,
+		CANTIDAD,
+		DOT,
+		IDLLANTA,
+		DES_REF2,
+		DISEÑO2,
+		CANTIDAD2,
+		DOT2,
+		IDLLANTA2,
+		INSTALACION,
+		BALANCEO,
+		ALINEACION,
+		RECEPCION,
+		MARCACION,
+		REPORTEALINEA,
+		CN,
+		CP,
+		CV,
+		NOTA,
+		USUARIO,
+		SERVITECA2,
+		CSERVITECA,
+		NREFERENCIA,
+		CODREF,
+		NREFERENCIA2,
+		CODREF2,
+		CSERVITECA2,
+		ITEM1,
+		ITEM2,
+		CREM
+		) values(
+		#{ars.fechaServicio},
+		#{ars.ncom},
+		#{ars.ciudad},
+		#{ars.serviteca},
+		#{ars.unidad},
+		#{ars.recibe},
+		#{ars.sigla},
+		#{ars.marca},
+		#{ars.linea},
+		#{ars.norden},
+		#{ars.desRef},
+		#{ars.diseno},
+		#{ars.cantidad},
+		#{ars.dot},
+		#{ars.idllanta},
+		#{ars.desRef2},
+		#{ars.diseno2},
+		#{ars.cantidad2},
+		#{ars.dot2},
+		#{ars.idLlanta2},
+		#{ars.instalacion},
+		#{ars.balanceo},
+		#{ars.alineacion},
+		#{ars.recepcion},
+		#{ars.marcacion},
+		#{ars.reportAlinea},
+		#{ars.cn},
+		#{ars.cp},
+		#{ars.cv},
+		#{ars.observaciones},
+		#{ars.usuario},
+		#{ars.serviteca2},
+		#{ars.cserviteca},
+		#{ars.nreferencia},
+		#{ars.codigo},
+		#{ars.nreferencia2},
+		#{ars.codigo2},
+		#{ars.cserviteca2},
+		#{ars.item1},
+		#{ars.item2},
+		#{ars.crem}
+		)
+		SELECT @@rowcount
+	</select>
+
+	<select id="buscaReferencia" resultType="com.gci.siarp.macropartes.domain.Referencias">
+		select
+		codigo,nombre,referencia,item from REFERENCIAS where REFERENCIA =
+		#{referencia} order by REFERENCIA
+	</select>
+
+	<select id="buscaTodaReferencia" resultType="com.gci.siarp.macropartes.domain.Referencias">
+		select
+		CODIGO as codigo,
+		NOMBRE as nombre,
+		REFERENCIA as referencia,
+		ITEM as item
+		from REFERENCIAS
+		where REFERENCIA like #{referencia}
+		order by CODIGO
+	</select>
+
+	<select id="buscandoArs" resultType="com.gci.siarp.macropartes.domain.Ars">
+		select
+		FECHASERVICIO as fechaServicio,
+		NCOM as ncom,
+		CIUDAD as ciudad,
+		SERVITECA as serviteca,
+		UNIDAD as unidad,
+		RECIBE as recibe,
+		SIGLA as sigla
+		from GENERAL
+		where NCOM like #{criterio}
+		or CIUDAD like #{criterio}
+		or SERVITECA like #{criterio}
+	</select>
+
+	<select id="buscaNombreServiteca" resultType="String">
+		select NOMBRE from
+		SERVITECAS where CODIGO = #{codigo}
+	</select>
+
+	<select id="buscaConsectivoTablaMovimiento" resultType="long">
+		select
+		DATO from consecutivos where DETALLE = 'remision'
+	</select>
+
+	<select id="actualizaConsectivoTablaMovimiento" resultType="long">
+		update CONSECUTIVOS set DATO = #{consecutivo} where DETALLE =
+		#{detalle}
+		SELECT @@rowcount
+	</select>
+
+	<select id="insertarMovimientoArs" parameterType="com.gci.siarp.macropartes.domain.Ars" resultType="int">
+		insert into MOVIMIENTOS (TIPO, ESTADO, FECHA, USUARIO,
+		MES,AÑO,FECHA_COMPROBANTE,
+		NOMBRE,CODIGO_ORIGEN,DETALLE_ORIGEN,CANTIDAD_ORIGEN,BODEGA_ORIGEN,
+		NBODEGA_ORIGEN,STOCK_ANTES_ORIGEN,STOCK_DESPUES_ORIGEN,
+		EMPRESA, AUDITORIA,CLAVE_RASTREO, NORDEN,SALIDA,ARS,EJECUCION,CIUDAD,
+		MONEDA,ITEM_ORIGEN)
+		values(
+		'REMISION',
+		'ACTIVO',
+		GETDATE(),
+		#{ars.usuario},
+		MONTH(GETDATE()),
+		YEAR(GETDATE()),
+		CONVERT (date, GETDATE()),
+		#{ars.recibe},
+		#{ars.codigo},
+		#{ars.nreferencia},
+		#{ars.cantidad},
+		#{ars.cserviteca},
+		#{ars.serviteca},
+		#{stockAnterior},
+		#{stockActual},
+		'00001',
+		'NA',
+		'NA',
+		#{consecutivo},
+		'1',
+		#{ars.ncom},
+		'2',
+		#{ars.ciudad},
+		'1',
+		#{ars.item1String})
+		SELECT @@rowcount
+	</select>
+
+	<select id="getARSPorIDReporte" resultType="com.gci.siarp.macropartes.domain.ARSReporte">
+		select g.FECHASERVICIO as fecha_servicio, g.NCOM as ars, g.CIUDAD as ciudad, g.SERVITECA as serviteca, g.UNIDAD as unidad, 
+			g.RECIBE as recibe, g.SIGLA as sigla, g.MARCA as marca_linea, g.NORDEN as orden_servicio, g.DES_REF as referencia, 
+			g.DISEÑO as diseno, g.CANTIDAD as acant, g.DOT as dot, g.IDLLANTA as idllantas, g.DES_REF2 as referencia2, 
+			g.DISEÑO2 as diseno2, g.CANTIDAD2 acant2, g.DOT2 as dot2, g.IDLLANTA2 as idllantas2, g.INSTALACION as inst, 
+			g.RECEPCION as recp, g.BALANCEO as balc, g.MARCACION as marc, g.ALINEACION as alin, g.REPORTEALINEA as repa, 
+			g.CN as neumatico, g.CP as protector, g.CV as valvulas, g.NOTA as observaciones, g.USUARIO as usuario, 
+			g.FECHA as fecha_hora_dig, g.NREFERENCIA as descripcion, g.NREFERENCIA2 as descripcion2, g.CODREF as codigo, 
+			g.CODREF2 as codigo2, g.ITEM1 as item, g.ITEM2 as item2, g.SERVITECA2 as serviteca2, g.CREM as remision 
+			from GENERAL g WHERE g.ncom =  #{consecutivo}
+	</select>
+	
+	<select id="getAllSiglas" resultType="String">
+		select distinct(sigla) from GENERAL
+	</select>
+	
+	<select id="getAllRecibe" resultType="String">
+		select distinct(RECIBE) from GENERAL
+	</select>
+	
+	<select id="getAllUnidad" resultType="String">
+		select distinct(UNIDAD) from GENERAL
+	</select>
+	
+</mapper>

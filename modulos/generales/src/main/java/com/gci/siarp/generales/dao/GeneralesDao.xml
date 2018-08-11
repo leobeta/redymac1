@@ -1,0 +1,574 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.generales.dao.GeneralesDao">
+	<select id="traerSeccionales" resultType="com.gci.siarp.generales.domain.Seccional">
+		select id_seccional
+		idSeccional,
+		nombre_seccional nombreSeccional
+		from
+		siarp..gral_ma_seccional
+		where estado_aud='A'
+	</select>
+
+	<select id="traerDatosAfiliado" resultType="com.gci.siarp.generales.domain.Afiliado">
+		select id_tipo_doc idTipoDoc, id_persona idPersona,
+		nombre1,nombre2,apellido1,apellido2,sexo,fecha_nacimiento
+		fechaNacimiento,
+		convert(numeric(5,2),datediff(yy,fecha_nacimiento,getdate())-1 +
+		datediff(dd,convert(varchar(4),datepart(yy,getdate())-1)+'-'+convert(varchar(2),datepart(mm,fecha_nacimiento))+'-'+convert(varchar(2),case when datepart(dd,fecha_nacimiento)=29 and datepart(mm,fecha_nacimiento)=2 then 28 else datepart(dd,fecha_nacimiento) end),getdate())/365.0)
+		edad,
+		nombre1||' '||nombre2||' '||apellido1||' '||apellido2 as
+		nombreCompleto,
+		direccion_persona direccion,
+    	telefono_persona telefono,
+    	email_persona email
+		from siarp..gral_ma_persona
+		where id_persona=#{asDocu} and id_tipo_doc=#{asTDoc}
+
+	</select>
+
+	<select id="traerTiposDocu" resultType="com.gci.siarp.generales.domain.TipoDocumento">
+		select id_tipo_doc
+		tipoDoc,
+		nombre_tipo_doc nombreDocu
+		from siarp..gral_pm_tipo_doc where
+		estado_aud='A'
+	</select>
+
+	<select id="traerSiniestros" resultType="com.gci.siarp.generales.domain.Siniestro">
+		select sini.id_siniestro as idSiniestro,
+		sini.ID_TIPO_DOC as tDocAfil,
+		sini.id_persona as docAfil,
+		case when furat.id_siniestro Is Null And furep.id_siniestro Is Null then sin_formato.id_tipoat else case when furat.id_siniestro Is Null then 'EP' else 'AT' end end  AS tipo,
+		sini.FECHA_AT fechaAT,
+		sini.ID_TIPO_DOC_EMP tDocEmpre,
+		sini.id_empresa as docEmpre,
+		case when furep.id_siniestro Is Null then furat.fecha_muerte else FUREP.fecha_muerte end AS fechaMuerte,
+		
+		convert(date,vw_calif_pcl.FECHA_ESTRUCTURACION) as fechaEstructuracion, 
+		vw_calif_pcl.PORCE_TOTAL PCL, 
+		vw_calif_origen.ORIGEN as codigoOrigen,
+		convert(date,vw_calif_pcl.fecha_dictamen) as fechaDictamen,
+		vw_calif_pcl.numero_dictamen nroDictamen,
+		case when furat.id_siniestro Is Null then vw_calif_origen.id_calificacion_dto else vw_calif_pcl.ID_CALIFICACION_PCL end  AS nroCalifPCLOrigen,
+		sini.origen
+		
+		FROM ((((siniestros_socupa.dbo.ATEP_MA_SINIESTRO sini
+		    LEFT JOIN (
+		        SELECT vw_max_calif_pcl.ID_SINIESTRO, vw_max_calif_pcl.ID_CALIFICACION_PCL, calif_pcl.PORCE_TOTAL, calif_pcl.FECHA_ESTRUCTURACION ,
+		        calif_pcl.FECHA_NOTIFICACION, calif_pcl.FECHA_CALIFICACION, calif_pcl.NUMERO_DICTAMEN, calif_pcl.FECHA_DICTAMEN
+		        FROM
+		           (SELECT ML_MA_SOLICITUDES.ID_FURAT_FUREP AS ID_SINIESTRO, Max(calif_pcl.ID_CALIFICACION_pcl) AS ID_CALIFICACION_PCL
+		           FROM (medilab_pasiste..ML_MA_SOLICITUDES as ML_MA_SOLICITUDES 
+		           INNER JOIN medilab_pasiste..ML_MA_CALIFICACION_pcl AS calif_pcl ON ML_MA_SOLICITUDES.ID_SOLICITUD = calif_pcl.ID_SOLICITUD)
+		           inner join siniestros_socupa.dbo.ATEP_MA_SINIESTRO AS sini ON ML_MA_SOLICITUDES.ID_FURAT_FUREP = sini.ID_SINIESTRO
+		           WHERE (((ML_MA_SOLICITUDES.ESTADO_AUD)='A') AND sini.ID_TIPO_DOC=#{asTdoc} AND sini.ID_PERSONA=#{asDocu}) AND calif_pcl.ESTADO_AUD='A'
+		           GROUP BY ML_MA_SOLICITUDES.ID_FURAT_FUREP
+		          ) as vw_max_calif_pcl 
+		        LEFT JOIN medilab_pasiste.dbo.ML_MA_CALIFICACION_PCL AS calif_pcl ON vw_max_calif_pcl.ID_CALIFICACION_PCL = calif_pcl.ID_CALIFICACION_PCL
+		    ) as vw_calif_pcl
+		       ON (sini.ID_SINIESTRO = vw_calif_pcl.ID_SINIESTRO))
+		   LEFT OUTER JOIN siniestros_socupa.dbo.ATEP_MA_FURAT furat
+		      ON (sini.ID_SINIESTRO = furat.ID_SINIESTRO))
+		  LEFT OUTER JOIN siniestros_socupa.dbo.ATEP_MA_FUREP furep
+		     ON (sini.ID_SINIESTRO = furep.ID_SINIESTRO))
+		 LEFT OUTER JOIN siniestros_socupa.dbo.ATEP_MA_SIN_FORMATO SIN_FORMATO
+		    ON (sini.ID_SINIESTRO = SIN_FORMATO.ID_SINIESTRO))
+		LEFT OUTER JOIN (
+		        SELECT vw_max_calif_origen.ID_SINIESTRO, vw_max_calif_origen.ID_CALIFICACION_DTO, calif_orig.origen
+		        FROM 
+		          (SELECT ML_MA_SOLICITUDES.ID_FURAT_FUREP AS ID_SINIESTRO, Max(ML_MA_CALIFICACION_ORIGEN.ID_CALIFICACION_DTO) AS ID_CALIFICACION_DTO
+		           FROM (medilab_pasiste.dbo.ML_MA_SOLICITUDES as ML_MA_SOLICITUDES 
+		           INNER JOIN medilab_pasiste.dbo.ML_MA_CALIFICACION_ORIGEN as ML_MA_CALIFICACION_ORIGEN ON ML_MA_SOLICITUDES.ID_SOLICITUD = ML_MA_CALIFICACION_ORIGEN.ID_SOLICITUD)
+		           inner join siniestros_socupa.dbo.ATEP_MA_SINIESTRO AS sini ON ML_MA_SOLICITUDES.ID_FURAT_FUREP = sini.ID_SINIESTRO
+		           WHERE (((ML_MA_SOLICITUDES.ESTADO_AUD)='A') AND sini.ID_TIPO_DOC=#{asTdoc} AND sini.ID_PERSONA=#{asDocu}) AND ML_MA_CALIFICACION_ORIGEN.ESTADO_AUD='A'
+		           GROUP BY ML_MA_SOLICITUDES.ID_FURAT_FUREP
+		           ) as vw_max_calif_origen 
+		        LEFT JOIN medilab_pasiste.dbo.ML_MA_CALIFICACION_ORIGEN AS calif_orig ON vw_max_calif_origen.ID_CALIFICACION_DTO = calif_orig.ID_CALIFICACION_DTO
+		     ) as vw_calif_origen
+		   ON (sini.ID_SINIESTRO = vw_calif_origen.ID_SINIESTRO)
+		 WHERE (    (sini.ID_TIPO_DOC = #{asTdoc} AND sini.ID_PERSONA = #{asDocu}) AND sini.ESTADO_AUD != 'I')	
+	</select>
+	
+	<select id="traerSiniestrosPension" resultType="com.gci.siarp.generales.domain.Siniestro">
+		SELECT 
+			atep_ma_siniestro.ID_SINIESTRO idSiniestro,
+			atep_ma_siniestro.FECHA_AT fechaAT, 
+			atep_ma_siniestro.ID_TIPO_DOC_EMP tDocEmpre, 
+			atep_ma_siniestro.ID_EMPRESA AS docEmpre,
+			case when id_furat Is Null then 'EP' else 'AT' end  AS tipo,
+			null as fechaMuerte,
+			
+			ATEP_MA_FURAT.ID_TIPO_LESION, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			ATEP_MA_FURAT.ID_PARTE_CUERPO, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			ATEP_MA_FUREP.ID_DX_PRINCIPAL AS ID_DX, 
+			atep_ma_siniestro.ID_PERSONA AS ID_PERSONA_TEMP, 
+			ML_MA_CALIFICACION_PCL.fecha_estructuracion fechaEstructuracion,
+			ML_MA_CALIFICACION_PCL.fecha_dictamen fechaDictamen,
+			ML_MA_CALIFICACION_PCL.PORCE_TOTAL PCL,
+			empresa.razon_social razonSocial,
+			ML_MA_CALIFICACION_PCL.id_calificacion_pcl nroCalifPCLOrigen,
+			CASE ML_MA_CALIFICACION_PCL.ORIGEN_CALIFICACION_PCL
+		            When null then 'ARL'
+		            When 1 then 'ARL'
+		            when 6 then 'JR'
+		            when 7 then 'JN'
+		    END AS emisorDictamen, 
+		    munic.NOMBRE_MUNICIPIO municipioSiniestro,
+		    ML_MA_CALIFICACION_PCL.ayuda_terceros -1 as ayudatep,
+		    numero_dictamen nroDictamen
+		FROM ((((siniestros_socupa..atep_ma_siniestro atep_ma_siniestro 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FURAT ATEP_MA_FURAT ON atep_ma_siniestro.ID_SINIESTRO = ATEP_MA_FURAT.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FUREP ATEP_MA_FUREP ON atep_ma_siniestro.ID_SINIESTRO = ATEP_MA_FUREP.ID_SINIESTRO) 
+			LEFT JOIN siarp..GRAL_MA_EMPRESA AS EMPRESA ON (atep_ma_siniestro.ID_EMPRESA = EMPRESA.ID_EMPRESA) AND (atep_ma_siniestro.ID_TIPO_DOC_EMP = EMPRESA.ID_TIPO_DOC)) 
+			LEFT JOIN siarp..GRAL_PM_MUNICIPIO AS munic ON (atep_ma_siniestro.ID_DEPARTAMENTO = munic.ID_DEPARTAMENTO) AND (atep_ma_siniestro.ID_MUNICIPIO = munic.ID_MUNICIPIO)) 
+			LEFT JOIN (medilab_pasiste..ML_MA_CALIFICACION_PCL ML_MA_CALIFICACION_PCL
+			RIGHT JOIN (
+			
+				SELECT ML_MA_SOLICITUDES.ID_FURAT_FUREP AS id_siniestro, ML_MA_SOLICITUDES.ID_SOLICITUD, Max(ML_MA_CALIFICACION_PCL.ID_CALIFICACION_PCL) AS ID_CALIFICACION_PCL
+				FROM medilab_pasiste..ML_MA_SOLICITUDES ML_MA_SOLICITUDES 
+					INNER JOIN medilab_pasiste..ML_MA_CALIFICACION_PCL ML_MA_CALIFICACION_PCL  ON ML_MA_SOLICITUDES.ID_SOLICITUD = ML_MA_CALIFICACION_PCL.ID_SOLICITUD
+				WHERE (((ML_MA_CALIFICACION_PCL.FECHA_DICTAMEN) Is Not Null) AND ((ML_MA_CALIFICACION_PCL.ESTADO_AUD)='A') 
+					AND ((ML_MA_SOLICITUDES.ID_TIPO_DOC)=#{asTdoc}) AND ((ML_MA_SOLICITUDES.ID_TRABAJADOR)=#{asDocu}))
+				GROUP BY ML_MA_SOLICITUDES.ID_FURAT_FUREP, ML_MA_SOLICITUDES.ID_SOLICITUD
+			
+			) as vw_max_calif_x_solic ON ML_MA_CALIFICACION_PCL.ID_CALIFICACION_PCL = vw_max_calif_x_solic.ID_CALIFICACION_PCL) 
+				ON atep_ma_siniestro.ID_SINIESTRO = vw_max_calif_x_solic.id_siniestro
+		WHERE atep_ma_siniestro.ID_TIPO_DOC=#{asTdoc} AND atep_ma_siniestro.ID_PERSONA=#{asDocu} AND ML_MA_CALIFICACION_PCL.PORCE_TOTAL>=50
+		 AND atep_ma_siniestro.estado_aud='A'
+		
+		
+	</select>
+	
+	<select id="traerSiniestrosPJInvalidez" resultType="com.gci.siarp.generales.domain.Siniestro">
+		SELECT 
+			atep_ma_siniestro.ID_SINIESTRO idSiniestro,
+			atep_ma_siniestro.FECHA_AT fechaAT, 
+			atep_ma_siniestro.ID_TIPO_DOC_EMP tDocEmpre, 
+			atep_ma_siniestro.ID_EMPRESA AS docEmpre,
+			case when id_furat Is Null then 'EP' else 'AT' end  AS tipo,
+			null as fechaMuerte,
+			
+			ATEP_MA_FURAT.ID_TIPO_LESION, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			ATEP_MA_FURAT.ID_PARTE_CUERPO, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			ATEP_MA_FUREP.ID_DX_PRINCIPAL AS ID_DX, 
+			atep_ma_siniestro.ID_PERSONA AS ID_PERSONA_TEMP, 
+			ML_MA_CALIFICACION_PCL.fecha_estructuracion fechaEstructuracion,
+			ML_MA_CALIFICACION_PCL.fecha_dictamen fechaDictamen,
+			ML_MA_CALIFICACION_PCL.PORCE_TOTAL PCL,
+			empresa.razon_social razonSocial,
+			ML_MA_CALIFICACION_PCL.id_calificacion_pcl nroCalifPCLOrigen,
+			CASE ML_MA_CALIFICACION_PCL.ORIGEN_CALIFICACION_PCL
+		            When null then 'ARL'
+		            When 1 then 'ARL'
+		            when 6 then 'JR'
+		            when 7 then 'JN'
+		    END AS emisorDictamen, 
+		    munic.NOMBRE_MUNICIPIO municipioSiniestro,
+		    ML_MA_CALIFICACION_PCL.ayuda_terceros -1 as ayudatep,
+		    numero_dictamen nroDictamen,
+		    proceso_juridico.id_proceso idProceso
+		FROM ((((((siniestros_socupa..atep_ma_siniestro atep_ma_siniestro 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FURAT ATEP_MA_FURAT  ON atep_ma_siniestro.ID_SINIESTRO = ATEP_MA_FURAT.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FUREP ATEP_MA_FUREP  ON atep_ma_siniestro.ID_SINIESTRO = ATEP_MA_FUREP.ID_SINIESTRO) 
+			LEFT JOIN medilab_pasiste..ML_MA_SOLICITUDES ML_MA_SOLICITUDES ON atep_ma_siniestro.ID_SINIESTRO = ML_MA_SOLICITUDES.ID_FURAT_FUREP) 
+			LEFT JOIN siarp..GRAL_MA_EMPRESA AS EMPRESA ON (atep_ma_siniestro.ID_EMPRESA = EMPRESA.ID_EMPRESA) AND (atep_ma_siniestro.ID_TIPO_DOC_EMP = EMPRESA.ID_TIPO_DOC)) 
+			LEFT JOIN siarp..GRAL_PM_MUNICIPIO AS munic ON (atep_ma_siniestro.ID_DEPARTAMENTO = munic.ID_DEPARTAMENTO) AND (atep_ma_siniestro.ID_MUNICIPIO = munic.ID_MUNICIPIO)) 
+			LEFT JOIN medilab_pasiste..ML_MA_CALIFICACION_PCL ML_MA_CALIFICACION_PCL ON ML_MA_SOLICITUDES.ID_SOLICITUD = ML_MA_CALIFICACION_PCL.ID_SOLICITUD) 
+			INNER JOIN (proceso_juridico 
+			INNER JOIN PROCESO_SINIESTRO ON proceso_juridico.id_proceso = PROCESO_SINIESTRO.Id_proceso) ON atep_ma_siniestro.ID_SINIESTRO = PROCESO_SINIESTRO.ID_SINIESTRO
+		WHERE atep_ma_siniestro.ID_TIPO_DOC=#{asTdoc} AND atep_ma_siniestro.ID_PERSONA=#{asDocu} 
+			AND atep_ma_siniestro.estado_aud='A' AND proceso_juridico.pi='1' 
+	</select>
+	
+	<select id="traerSiniestrosMuerte" resultType="com.gci.siarp.generales.domain.Siniestro">
+		SELECT 
+			atep_ma_siniestro.ID_SINIESTRO AS idSiniestro,
+			case when furat.id_siniestro Is Null then furep.fecha_muerte else furat.fecha_muerte end  AS fechaMuerte,
+			case when furat.id_siniestro Is Null then 'EP' else 'AT' end  AS tipo,
+			atep_ma_siniestro.FECHA_AT fechaAT, 
+			atep_ma_siniestro.ID_TIPO_DOC_EMP tDocEmpre, 
+			atep_ma_siniestro.ID_EMPRESA AS docEmpre,
+			
+			FURAT.ID_TIPO_LESION AS ID_TIPO_LESION, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			FURAT.ID_PARTE_CUERPO AS ID_PARTE_CUERPO, 
+			FUREP.ID_DX_PRINCIPAL AS ID_DX, 
+			atep_ma_siniestro.ID_PERSONA AS ID_PERSONA_TEMP, 
+		 	empresa.razon_social razonSocial,
+			calif_origen.id_calificacion_dto  nroCalifPCLOrigen,
+			CASE calif_origen.ORIGEN_CALIFICACION_DTO
+		            When null then 'ARL'
+		            When 1 then 'ARL'
+		            when 6 then 'JR'
+		            when 7 then 'JN'
+		    END AS emisorDictamen,
+			munic.NOMBRE_MUNICIPIO,
+			calif_origen.fecha_dictamen fechaDictamen,
+			numero_dictamen nroDictamen
+			
+		FROM (((((siniestros_socupa..atep_ma_siniestro atep_ma_siniestro
+			LEFT JOIN siniestros_socupa..ATEP_MA_FURAT AS FURAT ON atep_ma_siniestro.ID_SINIESTRO = FURAT.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FUREP AS FUREP ON atep_ma_siniestro.ID_SINIESTRO = FUREP.ID_SINIESTRO) 
+			LEFT JOIN medilab_pasiste..ML_MA_SOLICITUDES AS ma_solic ON atep_ma_siniestro.ID_SINIESTRO = ma_solic.ID_FURAT_FUREP) 
+			LEFT JOIN siarp..GRAL_MA_EMPRESA AS EMPRESA ON (atep_ma_siniestro.ID_EMPRESA = EMPRESA.ID_EMPRESA) AND (atep_ma_siniestro.ID_TIPO_DOC_EMP = EMPRESA.ID_TIPO_DOC)) 
+			LEFT JOIN medilab_pasiste..ML_MA_CALIFICACION_ORIGEN AS calif_origen ON ma_solic.ID_SOLICITUD = calif_origen.ID_SOLICITUD) 
+			LEFT JOIN siarp..GRAL_PM_MUNICIPIO AS munic ON (atep_ma_siniestro.ID_MUNICIPIO = munic.ID_MUNICIPIO) AND (atep_ma_siniestro.ID_DEPARTAMENTO = munic.ID_DEPARTAMENTO)
+		WHERE (atep_ma_siniestro.ID_TIPO_DOC=#{asTdoc}) AND (atep_ma_siniestro.ID_PERSONA=#{asDocu}) 
+		AND ((FURAT.FECHA_MUERTE Is Not Null) or (furep.fecha_muerte is not null)) and atep_ma_siniestro.estado_aud='A'
+	</select>
+	
+	<select id="traerSiniestrosPJSobrevivientes" resultType="com.gci.siarp.generales.domain.Siniestro">
+		SELECT 
+			atep_ma_siniestro.ID_SINIESTRO AS idSiniestro,
+			case when furat.id_siniestro Is Null then furep.fecha_muerte else furat.fecha_muerte end  AS fechaMuerte,
+			case when furat.id_siniestro Is Null then 'EP' else 'AT' end  AS tipo,
+			atep_ma_siniestro.FECHA_AT fechaAT, 
+			atep_ma_siniestro.ID_TIPO_DOC_EMP tDocEmpre, 
+			atep_ma_siniestro.ID_EMPRESA AS docEmpre,
+			
+			FURAT.ID_TIPO_LESION AS ID_TIPO_LESION, 
+			atep_ma_siniestro.ID_TIPO_DOC, 
+			FURAT.ID_PARTE_CUERPO AS ID_PARTE_CUERPO, 
+			FUREP.ID_DX_PRINCIPAL AS ID_DX, 
+			atep_ma_siniestro.ID_PERSONA AS ID_PERSONA_TEMP, 
+		 	empresa.razon_social razonSocial,
+			calif_origen.id_calificacion_dto  nroCalifPCLOrigen,
+			CASE calif_origen.ORIGEN_CALIFICACION_DTO
+		            When null then 'ARL'
+		            When 1 then 'ARL'
+		            when 6 then 'JR'
+		            when 7 then 'JN'
+		    END AS emisorDictamen,
+			munic.NOMBRE_MUNICIPIO,
+			calif_origen.fecha_dictamen fechaDictamen,
+			numero_dictamen nroDictamen,
+		    proceso_juridico.id_proceso idProceso
+		FROM ((((((siniestros_socupa..atep_ma_siniestro as atep_ma_siniestro
+			LEFT JOIN siniestros_socupa..ATEP_MA_FURAT AS FURAT ON atep_ma_siniestro.ID_SINIESTRO = FURAT.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FUREP AS FUREP ON atep_ma_siniestro.ID_SINIESTRO = FUREP.ID_SINIESTRO) 
+			LEFT JOIN medilab_pasiste..ML_MA_SOLICITUDES AS ma_solic ON atep_ma_siniestro.ID_SINIESTRO = ma_solic.ID_FURAT_FUREP) 
+			LEFT JOIN siarp..GRAL_MA_EMPRESA AS EMPRESA ON (atep_ma_siniestro.ID_TIPO_DOC_EMP = EMPRESA.ID_TIPO_DOC) AND (atep_ma_siniestro.ID_EMPRESA = EMPRESA.ID_EMPRESA)) 
+			LEFT JOIN siarp..GRAL_PM_MUNICIPIO AS munic ON (atep_ma_siniestro.ID_DEPARTAMENTO = munic.ID_DEPARTAMENTO) AND (atep_ma_siniestro.ID_MUNICIPIO = munic.ID_MUNICIPIO)) 
+			LEFT JOIN medilab_pasiste..ML_MA_CALIFICACION_ORIGEN AS calif_origen ON ma_solic.ID_SOLICITUD = calif_origen.ID_SOLICITUD) 
+			INNER JOIN (proceso_juridico 
+			INNER JOIN PROCESO_SINIESTRO ON proceso_juridico.id_proceso = PROCESO_SINIESTRO.Id_proceso) ON atep_ma_siniestro.ID_SINIESTRO = PROCESO_SINIESTRO.Id_siniestro
+		WHERE (FURAT.FECHA_MUERTE Is Not Null or FUREP.fecha_muerte Is Not Null) 
+			AND atep_ma_siniestro.ID_TIPO_DOC=#{asTdoc} AND atep_ma_siniestro.ID_PERSONA=#{asDocu} 
+			AND atep_ma_siniestro.estado_aud='A' AND proceso_juridico.ps='1' 
+			
+	</select>
+
+	<select id="traerDatosEmpresa" resultType="com.gci.siarp.generales.domain.Empresa">
+		SELECT
+		empre.ID_TIPO_DOC idTipoDoc,
+		empre.ID_EMPRESA idEmpresa,
+		empre.DV_EMPRESA dvEmpresa,
+		empre.RAZON_SOCIAL razonSocial,
+		empre.DIRECCION_EMPRESA direccion,
+		empre.TELEFONO_EMPRESA telefono,
+		empre.ID_ACT_ECONOMICA idActEcon,
+		act_econ.NOMBRE_ACT_ECONOMICA actEcon
+		FROM siarp..GRAL_MA_EMPRESA AS empre
+		LEFT JOIN siarp..GRAL_PM_ACTIVIDAD_ECONOMICA AS act_econ ON
+		empre.ID_ACT_ECONOMICA = act_econ.ID_ACT_ECONOMICA
+		WHERE
+		empre.ID_TIPO_DOC=#{asTDoc} AND empre.ID_EMPRESA=#{asDocu}
+	</select>
+	<select id="traerDatosSiniestro" resultType="com.gci.siarp.generales.domain.Siniestro">
+		SELECT
+			sini.ID_SINIESTRO idSiniestro,
+			sini.ID_TIPO_DOC tDocAfil,
+			sini.ID_PERSONA docAfil,
+			sini.FECHA_AT fechaAT,
+			sini.ID_TIPO_DOC_EMP tDocEmpre,
+			sini.ID_EMPRESA docEmpre,
+			case when furat.id_siniestro is not null then 'AT' when furep.id_siniestro is not null then 'EP' else sf.id_tipoat end as tipo
+		FROM ((siniestros_socupa..ATEP_MA_SINIESTRO AS sini 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FURAT AS FURAT ON sini.ID_SINIESTRO = FURAT.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_FUREP AS FUREP ON sini.ID_SINIESTRO = FUREP.ID_SINIESTRO) 
+			LEFT JOIN siniestros_socupa..ATEP_MA_SIN_FORMATO AS SF ON sini.ID_SINIESTRO = SF.ID_SINIESTRO
+		WHERE sini.ID_SINIESTRO=#{alSini} 
+	</select>
+	<select id="buscarDiags" resultType="com.gci.siarp.generales.domain.DiagGral">
+		select id_dx idDx,
+		nombre_dx nombreDx
+		from siarp..gral_pm_diagnostico diag
+		<where>
+			<if test='asIdDiag != null and asIdDiag!=""'>
+				AND id_dx like #{asIdDiag}
+			</if>
+			<if test='asDescripDiag != null and asDescripDiag != ""'>
+				AND nombre_dx like #{asDescripDiag}
+			</if>
+
+		</where>
+	</select>
+	
+	<select id="traerDiagnosticos" resultType="com.gci.siarp.generales.domain.DiagGral">
+		SELECT  
+			gral_pm_diagnostico.id_dx idDx,           
+			gral_pm_diagnostico.nombre_dx nombreDX
+		FROM siarp.dbo.gral_pm_diagnostico    as gral_pm_diagnostico
+	</select>
+
+	<select id="SMLV" resultType="Double">
+		select salario_minimo
+		from
+		pecono_reservas..RES_PM_PARAM_SOA
+		WHERE #{adtFecha} Between RES_PM_PARAM_SOA.fecha_ini And
+		RES_PM_PARAM_SOA.fecha_fin
+	</select>
+
+	<select id="ipc" resultType="Double">
+		select ipc from
+		pecono_reservas..res_pm_param_soa where #{adFecha} between fecha_ini
+		and fecha_fin
+	</select>
+
+	<select id="traerSalarioRelacionLab" resultType="Long">
+		SELECT
+		Max(RELA_LAB.SALARIO_MENSUAL)
+		FROM siniestros_socupa.dbo.ATEP_MA_SINIESTRO AS SINI
+		LEFT JOIN siarp.dbo.GRAL_MV_RELACION_LABORAL AS RELA_LAB
+		ON (SINI.ID_TIPO_DOC = RELA_LAB.ID_TIPO_DOC) AND (SINI.ID_PERSONA =
+		RELA_LAB.ID_PERSONA)
+		AND (SINI.ID_TIPO_DOC_EMP = RELA_LAB.ID_TIPO_DOC_EMP) AND
+		(SINI.ID_EMPRESA = RELA_LAB.ID_EMPRESA)
+		WHERE
+		SINI.ID_SINIESTRO=#{alIdSiniestro}
+	</select>
+
+	<select id="buscarProcesoPJSiniestro" resultType="Long">
+		select
+		max(id_proceso)
+		from pecono_reservas..proceso_siniestro
+		where id_siniestro=#{alIdSiniestro}
+
+	</select>
+	<select id="pretensionesPJ" resultType="com.gci.siarp.generales.domain.EstadoPJ">
+		SELECT
+		estado asEstado,
+		af asAf,
+		it asIt,
+		ipp asIpp,
+		pa asPa,
+		pi asPi,
+		ps asPs
+		FROM pecono_reservas..proceso_juridico
+		WHERE
+		id_proceso=#{alIdProceso}
+	</select>
+	<select id="instanciasEnContra" resultType="Long">
+		SELECT
+		Count(PROCESO_INSTANCIA.ID_INSTANCIA)
+		FROM pecono_reservas..PROCESO_INSTANCIA PROCESO_INSTANCIA
+		WHERE
+		ID_PROCESO=#{alIdProceso} and
+		((PROCESO_INSTANCIA.audiencia='5' AND
+		PROCESO_INSTANCIA.fallo_audiencia='C')
+		OR (PROCESO_INSTANCIA.CIERRE_PROCESO='1' AND
+		PROCESO_INSTANCIA.FALLO='0'))
+	</select>
+	<select id="cuantosMovPJ" resultType="Long">
+		SELECT Count(*)
+		FROM pecono_reservas..res_mv_reserva_soa
+		WHERE
+		id_furat_temp=#{alIdSiniestro} and modulo_origina='PJ' and
+		id_tipomov='R'
+		<if test='asRubro="AF"'>
+			and reserva_aux_funerario!=0
+		</if>
+		<if test='asRubro="IT"'>
+			and reserva_it!=0
+		</if>
+		<if test='asRubro="IPP"'>
+			and reserva_ipp!=0
+		</if>
+		<if test='asRubro="AS"'>
+			and reserva_asistencial!=0
+		</if>
+		<if test='asRubro="PI"'>
+			and reserva_pi!=0
+		</if>
+		<if test='asRubro="PS"'>
+			and reserva_ps!=0
+		</if>
+
+	</select>
+
+	<select id="traerDepartamentos" resultType="com.gci.siarp.generales.domain.Departamento">
+		select
+		id_departamento idDepartamento,
+		nombre_departamento nombreDepartamento
+		from siarp..gral_pm_departamento
+		where
+		estado_aud='A'
+	</select>
+
+	<select id="traerBancos" resultType="com.gci.siarp.generales.domain.Banco">
+		select
+			id_banco idBanco,
+			nombre_banco ||'----(Cte:'||convert(varchar(2),long_cte)||' , Aho:'||convert(varchar(2),long_aho)||')' as nombreBanco,
+			long_cte longCte,
+			long_aho longAho,
+			convert(varchar(10),id_banco)||';'||convert(varchar(2),long_cte)||';'||convert(varchar(2),long_aho) as concatenado
+		from siarp..gral_ma_banco
+		where estado_aud='A'
+	</select>
+
+	<select id="consultarBancoById" resultType="com.gci.siarp.generales.domain.Banco">
+		select
+		id_banco idBanco,
+		nombre_banco nombreBanco,
+		long_cte longCte,
+		long_aho longAho
+		from siarp..gral_ma_banco
+		where estado_aud='A' and ID_BANCO = #{idBanco}		
+	</select>
+
+	<select id="traerMunicipios" resultType="com.gci.siarp.generales.domain.Municipio">
+		select
+		id_municipio idMunicipio,
+		nombre_municipio nombreMunicipio
+		from siarp..gral_pm_municipio
+		where estado_aud='A' and
+		id_departamento=#{aiIdDepto}
+	</select>
+	<select id="traerAFPs" resultType="com.gci.siarp.generales.domain.AFP">
+		select id_afp idAFP,
+		nombre_afp nombreAFP
+		from siarp..gral_pm_afp where estado_aud='A'
+
+	</select>
+	<select id="traerEPSs" resultType="com.gci.siarp.generales.domain.EPS">
+		select id_eps idEPS,
+		nombre_eps nombreEps
+		from siarp..gral_pm_eps where estado_aud='A'
+	</select>
+	<select id="traerIPSs" resultType="com.gci.siarp.generales.domain.IPS">
+		select COD_IPS idIPS,
+		nombre_ips nombreIps
+		from siarp..gral_ma_ips where estado_aud='A'
+	</select>
+	<select id="edad" resultType="BigDecimal">
+		declare @lf_edad float
+		
+		set  @lf_edad=
+		convert(numeric(5,2),datediff(yy,#{fechaInicio},#{fechaFin})-1 +
+		datediff(dd,convert(varchar(4),datepart(yy,#{fechaFin})-1)+'-'+convert(varchar(2),datepart(mm,#{fechaInicio}))
+		+'-'+convert(varchar(2),case when datepart(dd,#{fechaInicio})=29 and datepart(mm,#{fechaInicio})=2 then 28 else datepart(dd,#{fechaInicio}) end ),#{fechaFin})/365.0)
+		
+		select case when #{decimales}>0 then round(@lf_edad,#{decimales}) else convert(integer,@lf_edad)end as edad
+	</select>
+
+	<select id="coberturaSiniestro" resultType="com.gci.siarp.generales.domain.CoberturaSiniestro">
+		declare @ld_respuesta date
+		set chained off
+		exec procesos_gi..SP_GCI_RP_VALIDAR_COBERTURA #{aiIdSiniestro} in,@ld_respuesta out
+		
+	</select>
+	
+	<select id="recuperarParametroGen" resultType="com.gci.siarp.generales.domain.ParametroGen">
+		select 
+			entero,
+			cadena,
+			fecha
+		from parametros_gen
+		where codigo_parametro=#{aiCodigo}
+	</select>
+	
+	<update id="actualizarConsecutivoGCI"> 
+		UPDATE PECONO_RESERVAS.DBO.CONSECUTIVOS_GCI  
+		SET ACTUAL = case when actual is null then 0 else ACTUAL end + 1
+		WHERE PECONO_RESERVAS.DBO.CONSECUTIVOS_GCI.CODIGO_OPCION = #{aplicacion}
+	</update>
+	
+	<select id="recuperarConsecutivoGCI" resultType="Integer">
+		SELECT PECONO_RESERVAS.DBO.CONSECUTIVOS_GCI.ACTUAL  
+		FROM PECONO_RESERVAS.DBO.CONSECUTIVOS_GCI  
+		WHERE PECONO_RESERVAS.DBO.CONSECUTIVOS_GCI.CODIGO_OPCION = #{aplicacion}
+	</select>
+	
+	<select id="funcionDiaHabil" resultType="Date">
+		SELECT pecono_reservas.dbo.diahabil(#{fecha},#{diasHabiles})
+	</select>
+	
+	<select id="traerDeptosGiro" resultType="com.gci.siarp.generales.domain.Departamento" >
+		SELECT distinct 
+			GRAL_PM_DEPARTAMENTO.ID_DEPARTAMENTO idDepartamento,
+			GRAL_PM_DEPARTAMENTO.NOMBRE_DEPARTAMENTO nombreDepartamento
+		FROM pe_oficinas_giro 
+		INNER JOIN siarp..GRAL_PM_DEPARTAMENTO as GRAL_PM_DEPARTAMENTO ON pe_oficinas_giro.id_departamento = GRAL_PM_DEPARTAMENTO.ID_DEPARTAMENTO
+		WHERE pe_oficinas_giro.estado_aud='A'
+	</select>
+	
+	<select id="traerBancosGiro" resultType="com.gci.siarp.generales.domain.Banco" >
+		
+		SELECT DISTINCT 
+			GRAL_MA_BANCO.ID_BANCO idBanco, 
+			GRAL_MA_BANCO.NOMBRE_BANCO nombreBanco, 
+			GRAL_MA_BANCO.long_cte longCte, 
+			GRAL_MA_BANCO.long_aho longAho
+		FROM pe_oficinas_giro 
+		INNER JOIN siarp..GRAL_MA_BANCO as GRAL_MA_BANCO ON (pe_oficinas_giro.id_banco = GRAL_MA_BANCO.ID_BANCO) 
+			AND (GRAL_MA_BANCO.ESTADO_AUD='A')
+		WHERE pe_oficinas_giro.estado_aud='A' and pe_oficinas_giro.id_municipio=#{aiIdMunic} and id_departamento=#{aiIdDepto}
+	</select>
+	
+	<select id="traerOficinasGiro" resultType="com.gci.siarp.generales.domain.OficinaGiro" >
+	
+		SELECT DISTINCT 
+			pe_oficinas_giro.id_oficina idOficina, 
+			pe_oficinas_giro.codigo_oficina codigoOficina, 
+			pe_oficinas_giro.nombre_oficina nombreOficina, 
+			pe_oficinas_giro.direccion_oficina direccionOficina, 
+			convert(varchar, pe_oficinas_giro.codigo_oficina) ||' '||	pe_oficinas_giro.nombre_oficina||' '||	pe_oficinas_giro.direccion_oficina descripcionConcatenada
+		FROM pe_oficinas_giro
+		WHERE pe_oficinas_giro.estado_aud='A' AND pe_oficinas_giro.id_departamento=#{aiIdDepto} 
+			AND pe_oficinas_giro.id_municipio=#{aiIdMunic} AND pe_oficinas_giro.id_banco=#{aiIdBanco}
+	</select>
+	
+	<select id="traerDatosGiro" resultType="com.gci.siarp.generales.domain.OficinaGiro" >
+	
+		SELECT DISTINCT 
+			pe_oficinas_giro.id_oficina idOficina, 
+			pe_oficinas_giro.codigo_oficina codigoOficina, 
+			pe_oficinas_giro.nombre_oficina nombreOficina, 
+			pe_oficinas_giro.direccion_oficina direccionOficina,
+			pe_oficinas_giro.id_departamento idDepartamento,
+			pe_oficinas_giro.id_municipio idMunicipio,
+			pe_oficinas_giro.id_banco idBanco,
+			convert(varchar, pe_oficinas_giro.codigo_oficina) ||' '||	pe_oficinas_giro.nombre_oficina||' '||	pe_oficinas_giro.direccion_oficina descripcionConcatenada
+		FROM pe_oficinas_giro
+		WHERE pe_oficinas_giro.estado_aud='A' AND pe_oficinas_giro.id_oficina=#{aiIdOficinaGiro} 
+	</select>
+	
+	<select id="traerMunicsGiro" resultType="com.gci.siarp.generales.domain.Municipio" >
+		
+		SELECT DISTINCT 
+			GRAL_PM_MUNICIPIO.ID_MUNICIPIO idMunicipio, 
+			GRAL_PM_MUNICIPIO.NOMBRE_MUNICIPIO nombreMunicipio
+		FROM pe_oficinas_giro 
+		INNER JOIN siarp..GRAL_PM_MUNICIPIO as GRAL_PM_MUNICIPIO ON (pe_oficinas_giro.id_municipio = GRAL_PM_MUNICIPIO.ID_MUNICIPIO) 
+			AND (pe_oficinas_giro.id_departamento = GRAL_PM_MUNICIPIO.ID_DEPARTAMENTO)
+		WHERE pe_oficinas_giro.estado_aud='A' AND pe_oficinas_giro.id_departamento=#{aiIdDepto}
+	</select>
+
+
+	<select id="traerARPs" resultType="com.gci.siarp.generales.domain.ARP">
+		SELECT ID_ARP as idARP, NOMBRE_ARP as nombreARP FROM siarp..GRAL_PM_ARP
+	</select>
+	
+	<select id="buscaMotivoDevolucion" resultType="com.gci.siarp.generales.domain.MotivoDevolucion">
+    	SELECT d.ID_MOTIVO as codigo,d.DESCRIPCION as descripcion FROM medilab_pasiste..COM_PM_MOTIVO_DEVOLUCION AS d
+	</select>
+	
+	<select id="buscarFormaNotificacion" resultType="com.gci.siarp.generales.domain.FormaNotificacion">
+		SELECT FN.ID_FORMA AS CODIGO, FN.DESCRIPCION AS DESCRIPCION FROM medilab_pasiste..COM_PM_FORMA_NOTIFICACION AS FN
+	</select>
+	
+</mapper>

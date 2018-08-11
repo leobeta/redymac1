@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Use this file to deploy some handlers/chains and services      --><!-- Two ways to do this:                                           --><!--   java org.apache.axis.client.AdminClient deploy.wsdd          --><!--      after the axis server is running                          --><!-- or                                                             --><!--   java org.apache.axis.utils.Admin client|server deploy.wsdd   --><!--      from the same directory that the Axis engine runs         --><deployment xmlns="http://xml.apache.org/axis/wsdd/" xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+
+  <!-- Services from WScuentasMedicasService WSDL service -->
+
+  <service name="WScuentasMedicas" provider="java:RPC" style="wrapped" use="literal">
+      <parameter name="wsdlTargetNamespace" value="http://service.cuentasMedicas.siarp.gci.com"/>
+      <parameter name="wsdlServiceElement" value="WScuentasMedicasService"/>
+      <parameter name="schemaQualified" value="http://service.cuentasMedicas.siarp.gci.com"/>
+      <parameter name="wsdlServicePort" value="WScuentasMedicas"/>
+      <parameter name="className" value="com.gci.siarp.cuentasMedicas.service.WScuentasMedicas"/>
+      <parameter name="wsdlPortType" value="WScuentasMedicas"/>
+      <parameter name="typeMappingVersion" value="1.2"/>
+      <operation xmlns:operNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:retNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="recibeFactura" qname="operNS:recibeFactura" returnQName="retNS:recibeFacturaReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_factura" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_visado" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_multiusuario" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_radicador" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_usuario" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_fecha" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_maquina" type="tns:string"/>
+      </operation>
+      <operation xmlns:operNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:retNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="modificaFactura" qname="operNS:modificaFactura" returnQName="retNS:modificaFacturaReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_factura" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_visado" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_multiusuario" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_usuario" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_fecha" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_maquina" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:pi_reproceso" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_radicador" type="tns:string"/>
+      </operation>
+      <operation xmlns:operNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:retNS="http://service.cuentasMedicas.siarp.gci.com" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="importaAuditoria" qname="operNS:importaAuditoria" returnQName="retNS:importaAuditoriaReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_archivo" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_usuario" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_fecha" type="tns:string"/>
+        <parameter xmlns:pns="http://service.cuentasMedicas.siarp.gci.com" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:ps_maquina" type="tns:string"/>
+      </operation>
+      <parameter name="allowedMethods" value="recibeFactura modificaFactura importaAuditoria"/>
+
+  </service>
+</deployment>

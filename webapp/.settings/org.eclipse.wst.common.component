@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="webapp-1.0">
+        <wb-resource deploy-path="/" source-path="/target/m2e-wtp/web-resources"/>
+        <wb-resource deploy-path="/" source-path="/src/main/webapp" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/java"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
+        <dependent-module archiveName="config-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/config/config">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="api-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/api/api">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="parametricos-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/parametricos/parametricos">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="auth-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/auth/auth">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="generales-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/generales/generales">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="reportes-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/reportes/reportes">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="administracionUsuarios-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/administracionUsuarios/administracionUsuarios">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="macropartes-1.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/macropartes/macropartes">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="context-root" value="webapp"/>
+        <property name="java-output-path" value="/webapp/target/classes"/>
+    </wb-module>
+</project-modules>

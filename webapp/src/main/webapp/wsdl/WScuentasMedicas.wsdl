@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://service.cuentasMedicas.siarp.gci.com" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://service.cuentasMedicas.siarp.gci.com" xmlns:intf="http://service.cuentasMedicas.siarp.gci.com" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<!--WSDL created by Apache Axis version: 1.4
+Built on Apr 22, 2006 (06:55:48 PDT)-->
+ <wsdl:types>
+  <schema elementFormDefault="qualified" targetNamespace="http://service.cuentasMedicas.siarp.gci.com" xmlns="http://www.w3.org/2001/XMLSchema">
+   <element name="recibeFactura">
+    <complexType>
+     <sequence>
+      <element name="ps_factura" type="xsd:string"/>
+      <element name="ps_visado" type="xsd:string"/>
+      <element name="ps_multiusuario" type="xsd:string"/>
+      <element name="ps_radicador" type="xsd:string"/>
+      <element name="ps_usuario" type="xsd:string"/>
+      <element name="ps_fecha" type="xsd:string"/>
+      <element name="ps_maquina" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="recibeFacturaResponse">
+    <complexType>
+     <sequence>
+      <element name="recibeFacturaReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="modificaFactura">
+    <complexType>
+     <sequence>
+      <element name="ps_factura" type="xsd:string"/>
+      <element name="ps_visado" type="xsd:string"/>
+      <element name="ps_multiusuario" type="xsd:string"/>
+      <element name="ps_usuario" type="xsd:string"/>
+      <element name="ps_fecha" type="xsd:string"/>
+      <element name="ps_maquina" type="xsd:string"/>
+      <element name="pi_reproceso" type="xsd:string"/>
+      <element name="ps_radicador" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="modificaFacturaResponse">
+    <complexType>
+     <sequence>
+      <element name="modificaFacturaReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="importaAuditoria">
+    <complexType>
+     <sequence>
+      <element name="ps_archivo" type="xsd:string"/>
+      <element name="ps_usuario" type="xsd:string"/>
+      <element name="ps_fecha" type="xsd:string"/>
+      <element name="ps_maquina" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+   <element name="importaAuditoriaResponse">
+    <complexType>
+     <sequence>
+      <element name="importaAuditoriaReturn" type="xsd:string"/>
+     </sequence>
+    </complexType>
+   </element>
+  </schema>
+ </wsdl:types>
+
+   <wsdl:message name="recibeFacturaResponse">
+
+      <wsdl:part element="impl:recibeFacturaResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="importaAuditoriaResponse">
+
+      <wsdl:part element="impl:importaAuditoriaResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="importaAuditoriaRequest">
+
+      <wsdl:part element="impl:importaAuditoria" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="recibeFacturaRequest">
+
+      <wsdl:part element="impl:recibeFactura" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="modificaFacturaRequest">
+
+      <wsdl:part element="impl:modificaFactura" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:message name="modificaFacturaResponse">
+
+      <wsdl:part element="impl:modificaFacturaResponse" name="parameters">
+
+      </wsdl:part>
+
+   </wsdl:message>
+
+   <wsdl:portType name="WScuentasMedicas">
+
+      <wsdl:operation name="recibeFactura">
+
+         <wsdl:input message="impl:recibeFacturaRequest" name="recibeFacturaRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:recibeFacturaResponse" name="recibeFacturaResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="modificaFactura">
+
+         <wsdl:input message="impl:modificaFacturaRequest" name="modificaFacturaRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:modificaFacturaResponse" name="modificaFacturaResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="importaAuditoria">
+
+         <wsdl:input message="impl:importaAuditoriaRequest" name="importaAuditoriaRequest">
+
+       </wsdl:input>
+
+         <wsdl:output message="impl:importaAuditoriaResponse" name="importaAuditoriaResponse">
+
+       </wsdl:output>
+
+      </wsdl:operation>
+
+   </wsdl:portType>
+
+   <wsdl:binding name="WScuentasMedicasSoapBinding" type="impl:WScuentasMedicas">
+
+      <wsdlsoap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+      <wsdl:operation name="recibeFactura">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="recibeFacturaRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="recibeFacturaResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="modificaFactura">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="modificaFacturaRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="modificaFacturaResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="importaAuditoria">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="importaAuditoriaRequest">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="importaAuditoriaResponse">
+
+            <wsdlsoap:body use="literal"/>
+
+         </wsdl:output>
+
+      </wsdl:operation>
+
+   </wsdl:binding>
+
+   <wsdl:service name="WScuentasMedicasService">
+
+      <wsdl:port binding="impl:WScuentasMedicasSoapBinding" name="WScuentasMedicas">
+
+         <wsdlsoap:address location="http://localhost:8080/webapp/services/WScuentasMedicas"/>
+
+      </wsdl:port>
+
+   </wsdl:service>
+
+</wsdl:definitions>

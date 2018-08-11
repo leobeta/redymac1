@@ -1,0 +1,9 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.generales.dao.SYCDao" >
+	<select id="traerIBCsSyc" resultType="com.gci.siarp.generales.domain.RecaudoSYC" >
+		exec PA_LEER_PAGOS_AFIL_POSITIVA_c 
+			@tdoc_apo = #{tDocEmpre}, @ndoc_apo = #{docEmpre}, @tdoc_afi = #{tDocAfil}, 
+			@ndoc_afi = #{docAfil}, @periodo_ini = #{fechaIniSYC}, @periodo_fin = #{fechaFinSYC}
+
+	</select>
+</mapper>

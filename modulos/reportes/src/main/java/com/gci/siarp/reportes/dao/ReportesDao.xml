@@ -1,0 +1,75 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.reportes.dao.ReportesDao">
+
+    <select id="findAllReportsUsuario" resultType="com.gci.siarp.reportes.domain.Reporte">
+                                             
+	    SELECT 
+		mv_reportes.cod_usuario codUsuario, 
+		mv_reportes.cod_reporte codReporte,
+		mv_reportes.nro_solicitud nroSolicitud,
+		pm_reportes.descrip_reporte descripReporte, 
+		res_pm_modulos.descripcion_modulo descripcionModulo, 
+		mv_reportes.fecha_solicitud fechaSolicitud, 
+		mv_reportes.tiempo_generacion tiempoGeneracion, 
+		case when mv_reportes.ruta='-99' then convert(varchar(255),descrip_error) else ruta end ruta, 
+		pm_reportes.nro_argumentos nroArgumentos, 
+		mv_reportes.dato_arg1 datoArg1, 
+		mv_reportes.dato_arg2 datoArg2, 
+		mv_reportes.dato_arg3 datoArg3, 
+		mv_reportes.dato_arg4 datoArg4, 
+		mv_reportes.dato_arg5 datoArg5, 
+		mv_reportes.dato_arg6 datoArg6, 
+		mv_reportes.dato_arg7 datoArg7, 
+		mv_reportes.dato_arg8 datoArg8, 
+		mv_reportes.dato_arg9 datoArg9, 
+		mv_reportes.dato_arg10 datoArg10,
+		convert(varchar(255),descrip_error) as descripError,
+		case when mv_reportes.ruta_dmz='-99' then convert(varchar(255),descrip_error_dmz) else ruta_dmz end rutaDmz,
+		convert(varchar(255),descrip_error_dmz) as descripErrorDmz
+		FROM res_pm_modulos 
+			INNER JOIN (pm_reportes 
+			INNER JOIN mv_reportes ON pm_reportes.cod_reporte = mv_reportes.cod_reporte) ON res_pm_modulos.cod_modulo = pm_reportes.cod_modulo
+		WHERE mv_reportes.cod_usuario=#{idUsuario} AND mv_reportes.fecha_solicitud>=DateAdd(dd,- 7,getdate())
+		and mv_reportes.cod_reporte=#{codRep}
+        
+    </select>
+    
+    <select id="traerSQL" resultType="String">
+    	select dw from pm_reportes where cod_reporte=#{aiIdReporte}
+    </select>
+    
+    <select id="maxReport" resultType="Integer">
+    	select max(nro_solicitud)  from mv_reportes where cod_usuario=#{asIdUsuario}
+    </select>
+    <select id="findDistinctReportUsuario" resultType="com.gci.siarp.reportes.domain.Reporte">
+    	SELECT dif_repo.codReporte, 
+	    	pm_reportes.descrip_reporte descripReporte, 
+	    	pm_reportes.nro_argumentos nroArgumentos, 
+	    	pm_reportes.descrip_arg1 descripArg1, 
+	    	pm_reportes.descrip_arg2 descripArg2, 
+	    	pm_reportes.descrip_arg3 descripArg3, 
+	    	pm_reportes.descrip_arg4 descripArg4, 
+	    	pm_reportes.descrip_arg5 descripArg5, 
+	    	pm_reportes.descrip_arg6 descripArg6, 
+	    	pm_reportes.descrip_arg7 descripArg7, 
+	    	pm_reportes.descrip_arg8 descripArg8, 
+	    	pm_reportes.descrip_arg9 descripArg9, 
+	    	pm_reportes.descrip_arg10 descripArg10
+		FROM (
+			SELECT distinct 
+			mv_reportes.cod_reporte codReporte
+			FROM  mv_reportes 
+			WHERE mv_reportes.cod_usuario=#{idUsuario} AND mv_reportes.fecha_solicitud>=DateAdd(dd,- 7,getdate())
+		
+		) as dif_repo INNER JOIN pm_reportes ON dif_repo.codReporte = pm_reportes.cod_reporte
+    	
+    </select>
+    <update id="insertarReporte">
+    	INSERT INTO mv_reportes ( cod_usuario, nro_solicitud, cod_reporte, fecha_solicitud, dato_arg1, dato_arg2, dato_arg3, dato_arg4, dato_arg5, dato_arg6, dato_arg7, dato_arg8, dato_arg9, dato_arg10,tipo_rep,utiliza_sql_dw)
+		values (#{asUsuario},#{aiNsolic}, #{aiCodReporte}, getdate() , #{asArg1}, #{asArg2}, #{asArg3}, #{asArg4}, #{asArg5}, #{asArg6}, #{asArg7}, #{asArg8}, #{asArg9},#{asArg10},#{asTipoRep},#{asUsarSqlyDw})
+    	
+   	</update>
+   	<update id="actualizaSQLreport">
+   		update mv_reportes set select_mas_args =#{asSQL} where cod_usuario=#{asUsuario} and nro_solicitud=#{aiNsolic}
+   	</update>
+</mapper>

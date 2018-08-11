@@ -1,0 +1,64 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.generales.dao.IBCDao" >
+	<select id="getIBCsSolic" resultType="com.gci.siarp.generales.domain.IBC">
+		select 
+			id_solicitud idSolicitud,
+			periodo,
+			dias_cotizados diasCotizados,
+			valor,
+			seleccionado,
+			valor_mensualizado valorMensualizado,
+			valor_vap valorVAP,
+			dias_nuevo 	diasNuevos,
+			fecha_pago fechaPago
+		from pensiones_ibc
+
+		where id_solicitud = #{idSolicitud}
+		
+	</select>
+	<insert id="crearIBC">
+		insert into pensiones_ibc(id_solicitud,periodo,dias_cotizados,valor,seleccionado,valor_vap,dias_nuevo,manual)
+		select #{idSolicitud},#{periodo},#{diasCotizados},#{valor},#{seleccionado},#{valorVAP},#{diasNuevos},'1'
+	</insert>
+	
+	<update id="editIBC" parameterType="com.gci.siarp.generales.domain.IBC">
+		update pensiones_ibc 
+		set 
+			valor_vap=#{valorVAP},
+			seleccionado=#{seleccionado},
+			dias_nuevo=#{diasNuevos}
+		where id_solicitud=#{idSolicitud} and periodo=#{periodo} and dias_cotizados=#{diasCotizados}
+	</update>
+	
+	<insert id="crearIBCIPP">
+		insert into pensiones_ibc(id_solicitud,periodo,dias_cotizados,valor,seleccionado,valor_vap,dias_nuevo,manual)
+		select #{idSolicitud},#{periodo},#{diasCotizados},#{valor},#{seleccionado},#{valorVAP},#{diasNuevos},'1'
+	</insert>
+	
+	<update id="editIBCIPP" parameterType="com.gci.siarp.generales.domain.IBC">
+		update pensiones_ibc 
+		set 
+			valor_vap=#{valorVAP},
+			seleccionado=#{seleccionado},
+			dias_nuevo=#{diasNuevos}
+		where id_solicitud=#{idSolicitud} and periodo=#{periodo} and dias_cotizados=#{diasCotizados}
+	</update>
+	
+	<select id="getIBCsSolicIPP" resultType="com.gci.siarp.generales.domain.IBC">
+		select 
+			id_solicitud idSolicitud,
+			periodo,
+			dias_cotizados diasCotizados,
+			valor,
+			seleccionado,
+			valor_mensualizado valorMensualizado,
+			valor_vap valorVAP,
+			dias_nuevo 	diasNuevos
+		from pensiones_ibc
+
+		where id_solicitud = #{idSolicitud}
+		
+	</select>
+	
+	
+</mapper>

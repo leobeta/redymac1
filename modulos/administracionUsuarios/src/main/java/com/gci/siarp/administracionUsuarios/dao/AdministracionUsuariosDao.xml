@@ -1,0 +1,33 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="com.gci.siarp.administracionUsuarios.dao.AdministracionUsuariosDao">
+	<insert id="crearUsuarios">
+		insert into
+		usuarios(id_usuario, usuario, email,
+		password, created_at, primer_nombre, segundo_nombre, tipo_documento,
+		documento, estado, primer_apellido, segundo_apellido)
+		values(#{idUsuario}, #{usuario}, #{email}, #{password}, GETDATE(),
+		#{primerNombre}, #{segundoNombre},
+		#{tipoDocumento}, #{documento},
+		#{estado}, #{primerApellido}, #{segundoApellido})
+	</insert>
+
+	<select id="buscandoDatosUsuarios" resultType="com.gci.siarp.administracionUsuarios.domain.Usuarios">
+		select id_usuario
+		idUsuario,usuario usuario,email email ,password password,primer_nombre
+		primerNombre,segundo_nombre segundoNombre,tipo_documento
+		tipoDocumento,documento documento,estado estado,primer_apellido
+		primerApellido,segundo_apellido segundoApellido from usuarios
+	</select>
+
+	<update id="editarUsuarios">
+		update usuarios set usuario = #{usuario},email =
+		#{email},password= #{password},created_at =GETDATE(),primer_nombre =
+		#{primerNombre},segundo_nombre = #{segundoNombre},tipo_documento =
+		#{tipoDocumento},documento =
+		#{documento},estado=#{estado},primer_apellido
+		=#{primerApellido},segundo_apellido =#{segundoApellido}
+		where
+		id_usuario = #{idUsuario}
+	</update>
+</mapper>

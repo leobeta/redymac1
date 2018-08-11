@@ -1,0 +1,21 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.gci.siarp.generales.dao.SABASSDao">
+	<select id="traerIBCsSABASS" resultType="com.gci.siarp.generales.domain.RecaudoSABASS">
+		SELECT DISTINCT
+			convert (VARCHAR(10),c.aps_CicloCotizacion, 111) 	periodo, 
+			A.par_IBC											ibc, 
+			d.ag_FechaPago										agFechaPago, 
+			c.aps_CicloCotizacion  								periodo2,
+			A.par_DiasCotizados AS 								diasCotizados
+	
+	
+		from PagoAfiliadoRiesgos  A
+		INNER JOIN AportantePagoSeguro c ON A.ag_Referencia = C.ag_Referencia 
+		INNER JOIN AportantePago d ON A.ag_Referencia = d.ag_Referencia 
+		WHERE A.af_NumeroDocumento  = convert(numeric(15,0),#{docAfil}) and A.af_TipoDocumento = left(#{tDocAfil},1)
+		and c.aps_CicloCotizacion between #{fechaIniSABASS} and #{fechaFinSABASS}
+		and d.ap_Numerodocumento    = convert(numeric(15,0),#{docEmpre})
+		ORDER BY c.aps_CicloCotizacion desc
+	</select>
+</mapper>

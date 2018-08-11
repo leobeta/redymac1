@@ -1,0 +1,468 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gci.siarp.generales.dao.ReservasDao">
+	<update id="bloqueaTabla">
+		update pecono_reservas..res_ma_reserva_soa
+		set 
+			reserva_ipp=reserva_ipp,
+			reserva_pi=reserva_pi,
+			retro_pi=retro_pi
+		where id_furat_temp=#{alIdSiniestro}
+	</update>
+	
+	<select id="consultarReserva" resultType="Integer">
+		select count(*) 
+		from pecono_reservas..res_ma_reserva_soa
+		where id_furat_temp=#{alIdSiniestro} 
+	</select>
+	
+	<select id="consultarSiniestro" resultType="com.gci.siarp.generales.domain.Siniestro">
+		select
+			sini.id_siniestro 										idSiniestro,
+			sini.fecha_at											fechaAT,
+			id_tipo_doc_emp											tDocEmpre,
+			id_empresa												docEmpre,
+			id_tipo_doc												tDocAfil,
+			id_persona												docAfil,
+			case when furat.id_siniestro Is Null And furep.id_siniestro Is Null 
+				then sin_formato.id_tipoat 
+				else case when furat.id_siniestro Is Null then 'EP' else 'AT' end 
+			end  AS 												tipo,
+			case when furat.id_siniestro is  Null and furep.id_siniestro is Null 
+				then 0 
+				else 
+					case when furat.id_siniestro is Null 
+						then furep.ind_muerte_posterior 
+						else 
+						case when lower(furat.muerte_posterior) ='si'
+							then 1
+							else furat.ind_muerte 
+						end 
+					end 
+				end as mortal,
+			sini.estado_aud as estado,
+			case when furat.id_siniestro Is Null And furep.id_siniestro Is Null then sin_formato.fecha_radicacion else case when furat.id_siniestro Is Null then furep.fecha_radicacion else furat.fecha_radicacion end end as fechaAviso,
+			case when furep.id_siniestro Is Null And furat.id_siniestro is Null then sin_formato.id_parte_cuerpo else furat.ID_PARTE_CUERPO end as parteCuerpo, 
+			case when furep.id_siniestro Is Null And furat.id_siniestro Is Null then sin_formato.ID_TIPO_LESION else furat.ID_TIPO_LESION end as naturalezaLesion, 
+			case when furep.id_siniestro Is Null And furat.id_siniestro Is Null then sin_formato.ID_DX_PRINCIPAL else FUREP.ID_DX_PRINCIPAL end as diagnostico
+		
+		FROM ((siniestros_socupa.dbo.ATEP_MA_SINIESTRO AS sini 
+		LEFT JOIN siniestros_socupa.dbo.ATEP_MA_FURAT AS furat ON sini.ID_SINIESTRO = furat.ID_SINIESTRO) 
+		LEFT JOIN siniestros_socupa.dbo.ATEP_MA_FUREP AS furep ON sini.ID_SINIESTRO = furep.ID_SINIESTRO) 
+		LEFT JOIN siniestros_socupa.dbo.ATEP_MA_SIN_FORMATO AS SIN_FORMATO ON sini.ID_SINIESTRO = SIN_FORMATO.ID_SINIESTRO
+		where sini.id_siniestro=#{alIdSiniestro}
+	</select>
+	
+	<select id="maxMovRes" resultType="Long">
+		select isnull(max(nro_mov),0)+1 
+		from pecono_reservas..res_mv_reserva_soa
+		where id_furat_temp=#{alIdSiniestro}
+	</select>
+	
+	<select id="ibcConst" resultType="Double">
+		select min(ibc) 
+		from pecono_reservas..res_mv_reserva_soa 
+		where id_furat_temp=#{alIdSiniestro} and id_tipomov='C'
+	</select>
+	
+	<select id="tieneMovLiberaMatemat" resultType="Integer">
+		select count(*) 
+		from pecono_reservas..res_mv_reserva_soa 
+		where id_furat_temp=#{alIdSiniestro} and id_tipomov='M' 
+	</select>
+	
+	<select id="saldosReservaReaseguro" resultType="com.gci.siarp.generales.domain.SaldosReserva">
+		select 
+			sum(reserva_pi)	constPI,
+			sum(reserva_ps)	constPS,
+			sum(retro_pi)	constRI,
+			sum(retro_ps)	constRS
+		from res_mv_reserva_soa where id_furat_temp=#{alIdSiniestro} and id_tipomov='S'
+	
+	</select>
+	
+	<select id="valorAsistencialAT" resultType="Double">
+		SELECT reserva_asistencial 
+		FROM res_pm_reserva_soa
+		WHERE id_parte_cuerpo = #{aiParteCuerpo} and id_tipo_lesion=#{aiNaturalezaLesion}
+	</select>
+	
+	<select id="valorAsistencialEP" resultType="Double">
+		SELECT reserva_asistencial 
+		FROM siarp.dbo.gral_pm_diagnostico
+		WHERE id_dx = #{asDiagnostico}
+	</select>
+	
+	<select id="valorPCLAT" resultType="Double">
+		SELECT PCL 
+		FROM res_pm_reserva_soa
+		WHERE id_parte_cuerpo = #{aiParteCuerpo} and id_tipo_lesion=#{aiNaturalezaLesion}
+		
+	</select>
+	
+	<select id="valorPCLEP" resultType="Double">
+		SELECT PCL 
+		FROM siarp.dbo.gral_pm_diagnostico
+		WHERE id_dx = #{asDiagnostico}
+	</select>
+	
+	<select id="diasITAT" resultType="Integer">
+		SELECT dias_it 
+		FROM res_pm_reserva_soa
+		WHERE id_parte_cuerpo = #{aiParteCuerpo} and id_tipo_lesion=#{aiNaturalezaLesion}
+		
+	</select>
+	
+	<select id="traerPorcentSaludPension" resultType="com.gci.siarp.generales.domain.porcentSaludPension">
+		select  
+			porcentaje_salud 			porcentEmpleadoSalud, 
+			porcentaje_pension 			porcentEmpleadoPension, 
+			porcion_empleador_salud 	porcentEmpresaSalud, 
+			porcion_empleador_pension   porcentEmpresaPension
+
+		from res_pm_param_soa
+		where #{adFecha} between fecha_ini and fecha_fin
+	</select>
+	
+	<select id="diasITEP" resultType="Integer">
+		SELECT dias_it 
+		FROM siarp.dbo.gral_pm_diagnostico
+		WHERE id_dx = #{asDiagnostico}
+	</select>
+	
+	
+	<select id="consultarMortalidad" resultType="Double">
+		select valor 
+		from RES_PM_MORTALIDAD
+		where edad=#{alEdad} and tipo_persona=#{asTipo}
+	</select>
+	
+	<select id="consultarMortalidadVersion" resultType="Double">
+		select valor 
+		from res_pm_mortalidades
+		where edad=#{aiEdad} and tipo_persona=#{asTipoPer} and version=#{asVersion}
+		
+	</select>
+	
+	
+	<select id="valorPension" resultType="com.gci.siarp.generales.domain.ResultadoPension">
+		
+		
+		exec pecono_reservas..sp_res_matem_soa_chained @tdoc = #{tDoc}, @docu = #{docu}, @tipo_pension = #{tipoPension}, @edad1 = #{edad1}, 
+			@edad2 = #{edad2}, @tipopersona1 = #{tipoPersona1}, @tipopersona2 = #{tipoPersona2}, @a47 = #{a47}, @p = #{p}, @par14 = #{par14}, 
+			@mes_corte = #{mesCorte}, @k = #{k}, @sm = #{smin}, @i = #{i}, @fecau = #{feCau}, @mortal_ini = #{mortalIni}, @A = #{A}, 
+			@mortal_ini_2v = #{mortalIni2v}
+	</select>
+	
+	<select id="buscarIyK" resultType="com.gci.siarp.generales.domain.IyK">
+		select  k, i
+		from res_pm_param_soa
+		where #{adFecha} between fecha_ini and fecha_fin
+	</select>
+	
+	<select id="saldosReserva" resultType="com.gci.siarp.generales.domain.SaldosReserva">
+		select
+			#{alIdSiniestro}																idSiniestro,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_asistencial end) 	constAs,
+			sum(case when id_tipomov='R' then reserva_asistencial else 0 end )				reconAs,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_aux_funerario end) 	constAF,
+			sum(case when id_tipomov='R' then reserva_aux_funerario else 0 end )			reconAF,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_it end) 				constIT,
+			sum(case when id_tipomov='R' then reserva_it else 0 end )						reconIT,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_aportes_salud end) 	constApS,
+			sum(case when id_tipomov='R' then reserva_aportes_salud else 0 end )			reconApS,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_aportes_pension end) constApP,
+			sum(case when id_tipomov='R' then reserva_aportes_pension else 0 end )			reconApP,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_pi end) 				constPI,
+			sum(case when id_tipomov='R' then reserva_pi else 0 end )						reconPI,
+			sum(case when id_tipomov in ('R','S' ) then 0 else retro_pi end)	 			constRI,
+			sum(case when id_tipomov='R' then retro_pi else 0 end )							reconRI,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_ps end) 				constPS,
+			sum(case when id_tipomov='R' then reserva_ps else 0 end )						reconPS,			
+			sum(case when id_tipomov in ('R','S' ) then 0 else retro_ps end)	 			constRS,
+			sum(case when id_tipomov='R' then retro_ps else 0 end )							reconRS,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_ipp end) 			constIPP,
+			sum(case when id_tipomov='R' then reserva_ipp else 0 end )						reconIPP,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_honorarios end) 		constHon,
+			sum(case when id_tipomov='R' then reserva_honorarios else 0 end )				reconHon,
+			sum(case when id_tipomov in ('R','S' ) then 0 else reserva_otros end) 			constOtr,
+			sum(case when id_tipomov='R' then reserva_otros else 0 end )					reconOtr
+		from pecono_reservas..res_mv_reserva_soa
+		where id_furat_temp=#{alIdSiniestro}
+	</select>
+	
+	<select id="getSaldosOtrJur" resultType="com.gci.siarp.generales.domain.SaldosRubro">
+		SELECT 
+			isnull(sum(case when id_tipomov in('R','S') then 0 else 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial </when>
+				    <when test="tipoReserva == 'IT'">reserva_it </when>
+				    <when test="tipoReserva == 'PP'">reserva_ipp </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps </when>
+				    <when test="tipoReserva == 'RS'">retro_ps </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi </when>
+				    <when test="tipoReserva == 'RI'">retro_pi </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios </when>
+				    <when test="tipoReserva == 'OT'">reserva_otros </when>
+				</choose>
+			 end),0) constituido,
+			isnull(sum(case when id_tipomov='R' then 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial </when>
+				    <when test="tipoReserva == 'IT'">reserva_it </when>
+				    <when test="tipoReserva == 'PP'">reserva_ipp </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps </when>
+				    <when test="tipoReserva == 'RS'">retro_ps </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi </when>
+				    <when test="tipoReserva == 'RI'">retro_pi </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios </when>
+				    <when test="tipoReserva == 'OT'">reserva_otros </when>
+				</choose>
+			 else 0 end),0) reconocido
+		FROM pecono_reservas..res_mv_reserva_soa
+		WHERE id_furat_temp=#{idSiniestro} AND tipo_mov_otr=#{tipoMovOtr}
+		<if test="asModuloOrigina != null and asModuloOrigina=='PJ'"> and modulo_origina=#{asModuloOrigina} </if>
+		<if test="asModuloOrigina != null and asModuloOrigina!='PJ'"> and (modulo_origina is null or modulo_origina!='PJ') </if>
+
+	</select>
+	
+	<select id="reservaJuridico" resultType="Double">
+		select isnull(sum(case id_tipomov when 'R' then - 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial </when>
+				    <when test="tipoReserva == 'IT'">reserva_it </when>
+				    <when test="tipoReserva == 'PP'">reserva_ipp </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps </when>
+				    <when test="tipoReserva == 'RS'">retro_ps </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi </when>
+				    <when test="tipoReserva == 'RI'">retro_pi </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios </when>
+				    <when test="tipoReserva == 'OT'">reserva_otros </when>
+				</choose>
+   				when 'S' then 0 when 'T' then 0 else 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial </when>
+				    <when test="tipoReserva == 'IT'">reserva_it </when>
+				    <when test="tipoReserva == 'PP'">reserva_ipp </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps </when>
+				    <when test="tipoReserva == 'RS'">retro_ps </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi </when>
+				    <when test="tipoReserva == 'RI'">retro_pi </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios </when>
+				    <when test="tipoReserva == 'OT'">reserva_otros </when>
+				</choose>
+		 		end) ,0)
+			from res_mv_reserva_soa 
+			where id_furat_temp=#{alIdSiniestro} and modulo_origina='PJ'
+			<if test="asTipoMovOtr != null "> and tipo_mov_otr=#{asTipoMovOtr}</if>
+	</select>
+	
+	<select id="reservaNoJuridico" resultType="Double">
+		select isnull(sum(case id_tipomov when 'R' then - 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial</when>
+				    <when test="tipoReserva == 'IT'">reserva_it		    </when>
+				    <when test="tipoReserva == 'IPP'">reserva_ipp	    </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario  </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps			    </when>
+				    <when test="tipoReserva == 'RS'">retro_ps			    </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi		    </when>
+				    <when test="tipoReserva == 'RI'">retro_pi		    </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension    </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud	    </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios		    </when>
+				    <when test="tipoReserva == 'OT'">reserva_otros			    </when>
+				</choose>
+   				when 'S' then 0 when 'T' then 0 else 
+				<choose>
+					<when test="tipoReserva == 'AS'">reserva_asistencial  </when>
+				    <when test="tipoReserva == 'IT'">reserva_it		    </when>
+				    <when test="tipoReserva == 'IPP'">reserva_ipp    </when>
+				    <when test="tipoReserva == 'AF'">reserva_aux_funerario   </when>
+				    <when test="tipoReserva == 'PS'">reserva_ps			    </when>
+				    <when test="tipoReserva == 'RS'">retro_ps			    </when>
+				    <when test="tipoReserva == 'PI'">reserva_pi			    </when>
+				    <when test="tipoReserva == 'RI'">retro_pi			    </when>
+				    <when test="tipoReserva == 'PE'">reserva_aportes_pension </when>
+				    <when test="tipoReserva == 'SA'">reserva_aportes_salud   </when>
+				    <when test="tipoReserva == 'HO'">reserva_honorarios	    </when>
+				    <when test="tipoReserva == 'OT'"> reserva_otros		    </when>
+				</choose>
+		 		end),0)
+			from res_mv_reserva_soa 
+			where id_furat_temp=#{alIdSiniestro} and (modulo_origina is null or modulo_origina != 'PJ') 
+			<if test="asTipoMovOtr != null "> and tipo_mov_otr=#{asTipoMovOtr}</if>
+	</select>
+	
+	<select id="existeTipoMovOtr" resultType="Integer">
+		select count(*)
+		from pecono_reservas..res_pm_tipomov_otr
+		where id_tipomov=#{tipoMovOtr}
+	</select>
+
+	<select id="getHonorarios" resultType="Double">
+		SELECT sum(reserva_honorarios)
+		FROM pecono_reservas..res_mv_reserva_soa
+		WHERE id_furat_temp=#{idSiniestro} AND id_tipomov in ('C', 'A', 'O', 'P') 
+	</select>
+	
+	<insert id="insertMovReserva" parameterType="com.gci.siarp.generales.domain.MovimientoReserva">
+		INSERT INTO res_mv_reserva_soa(
+			id_furat_temp, 			nro_mov, 				id_tipomov, 				fecha_movimiento, 			ind_tipo_proceso, 
+			reserva_aux_funerario, 	reserva_it, 			reserva_ipp, 				reserva_pi, 				reserva_ps, 
+			reserva_asistencial,	reserva_aportes_salud, 	reserva_aportes_pension, 	reserva_honorarios, 		reserva_otros, 
+			retro_pi, 				retro_ps,				valor_solicitud, 			usuario_aud, 				maquina_aud,
+			estado_aud, 			operacion_aud, 			fecha_modificacion_aud, 	tipo_mov_otr, 				modulo_origina,
+			nro_interfaz, 			usuario, 				fecha_reg, 					tipo_opera, 				maquina, 
+			id_Parte_Cuerpo, 		id_Tipo_Lesion, 		id_dx, 						dias_it, 					PCL, 
+			ind_mortal, 			ibc)
+		VALUES (
+			#{idSiniestro}, 		#{nroMov}, 				#{idTipoMov}, 				#{fechaMovimiento}, 		#{indTipoProceso},
+			#{auxFunerario}, 		#{it}, 					#{ipp}, 					#{pi}, 						#{ps}, 
+			#{asistencial},			#{aportesSalud},		#{aportesPension},			#{honorarios},				#{otros},
+			#{retroPi},				#{retroPs},				#{valorSolicitud},			#{usuarioAud},				#{maquinaAud},
+			#{estadoAud},			#{operacionAud},		#{fechaModificacionAud},	#{tipoMovOtr},				#{moduloOrigina},
+			#{nroInterfaz}, 		#{usuarioAud}, 			#{fechaReg}, 				#{tipoOpera}, 				#{maquinaAud}, 
+			#{idParteCuerpo}, 		#{idTipoLesion}, 		#{idDx}, 					#{diasIt}, 					#{PCL}, 
+			#{indMortal}, 			#{ibc})
+	</insert>
+	
+	
+	
+	<update id="modificaMaestro" >
+		update pecono_reservas..res_ma_reserva_soa set
+			<if test="mov.asistencial != null and mov.asistencial!=0.0">reserva_asistencial=#{saldos.constAs} + #{mov.asistencial},</if>
+			<if test="mov.it != null and mov.it!=0.0">reserva_it=#{saldos.constIT} + #{mov.it},</if>
+			<if test="mov.aportesSalud != null and mov.aportesSalud!=0.0">reserva_aportes_salud=#{saldos.constApS} + #{mov.aportesSalud},</if>
+			<if test="mov.aportesPension != null and mov.aportesPension!=0.0">reserva_aportes_pension=#{saldos.constApP} + #{mov.aportesPension},</if>
+			<if test="mov.auxFunerario != null and mov.auxFunerario!=0.0">reserva_aux_funerario=#{saldos.constAF} + #{mov.auxFunerario},</if>
+			<if test="mov.ipp != null and mov.ipp!=0.0">reserva_ipp=#{saldos.constIPP} + #{mov.ipp},</if>
+			<if test="mov.pi != null and mov.pi!=0.0">reserva_pi=#{saldos.constPI} + #{mov.pi},</if>
+			<if test="mov.ps != null and mov.ps!=0.0">reserva_ps=#{saldos.constPS} + #{mov.ps},</if>
+			<if test="mov.retroPi != null and mov.retroPi!=0.0">retro_pi=#{saldos.constRI} + #{mov.retroPi},</if>
+			<if test="mov.retroPs != null and mov.retroPs!=0.0">retro_ps=#{saldos.constRS} + #{mov.retroPs},</if>
+			<if test="mov.honorarios != null and mov.honorarios!=0.0">reserva_honorarios=#{saldos.constHon} + #{mov.honorarios},</if>
+			<if test="mov.otros != null and mov.otros!=0.0">reserva_otros=#{saldos.constOtr} + #{mov.otros},</if>
+			usuario_aud=#{mov.usuarioAud}, maquina_aud=#{mov.maquinaAud}, operacion_aud='A',
+			fecha_modificacion_aud=getdate()
+		where id_furat_temp=#{mov.idSiniestro}
+	</update>
+	
+	<update id="modificaMaestroRecon" >
+		update pecono_reservas..res_ma_reserva_soa set
+			<if test="mov.asistencial != null and mov.asistencial!=0.0">recon_asistencial=#{saldos.reconAs} + #{mov.asistencial},</if>
+			<if test="mov.it != null and mov.it!=0.0">recon_it=#{saldos.reconIT} + #{mov.it},</if>
+			<if test="mov.aportesSalud != null and mov.aportesSalud!=0.0">recon_aportes_salud=#{saldos.reconApS} + #{mov.aportesSalud},</if>
+			<if test="mov.aportesPension != null and mov.aportesPension!=0.0">recon_aportes_pension=#{saldos.reconApP} + #{mov.aportesPension},</if>
+			<if test="mov.auxFunerario != null and mov.auxFunerario!=0.0">recon_aux_funerario=#{saldos.reconAF} + #{mov.auxFunerario},</if>
+			<if test="mov.ipp != null and mov.ipp!=0.0">recon_ipp=#{saldos.reconIPP} + #{mov.ipp},</if>
+			<if test="mov.pi != null and mov.pi!=0.0">recon_pi=#{saldos.reconPI} + #{mov.pi},</if>
+			<if test="mov.ps != null and mov.ps!=0.0">recon_ps=#{saldos.reconPS} + #{mov.ps},</if>
+			<if test="mov.retroPi != null and mov.retroPi!=0.0">recon_retro_pi=#{saldos.reconRI} + #{mov.retroPi},</if>
+			<if test="mov.retroPs != null and mov.retroPs!=0.0">recon_retro_ps=#{saldos.reconRS} + #{mov.retroPs},</if>
+			<if test="mov.honorarios != null and mov.honorarios!=0.0">recon_honorarios=#{saldos.reconHon} + #{mov.honorarios},</if>
+			<if test="mov.otros != null and mov.otros!=0.0">recon_otros=#{saldos.reconOtr} + #{mov.otros},</if>
+			usuario_aud=#{mov.usuarioAud}, maquina_aud=#{mov.maquinaAud}, operacion_aud='A',
+			fecha_modificacion_aud=getdate()
+		where id_furat_temp=#{mov.idSiniestro}
+	</update>
+	
+	<update id="actuRetroPiMaestro">
+		update pecono_reservas..res_ma_reserva_soa set 
+			retro_pi=retro_pi +#{adbValor}, 
+			operacion_aud='A',
+			maquina_aud=#{asMaquina},
+			fecha_modificacion_aud=getdate(),
+			usuario_aud=#{asUsuario}
+		where id_furat_temp=#{alIdSiniestro}
+	</update>
+	
+	<update id="actuRetroPiDetalle">
+		update pecono_reservas..res_mv_reserva_soa set 
+			retro_pi=#{adbValor}
+		where  id_furat_temp=#{alIdSiniestro} and   nro_mov=#{alNroMov}
+	</update>
+	
+	<update id="actuRetroPsMaestro">
+		update pecono_reservas..res_ma_reserva_soa set 
+			retro_ps=retro_ps +#{adbValor}, 
+			operacion_aud='A',
+			maquina_aud=#{asMaquina},
+			fecha_modificacion_aud=getdate(),
+			usuario_aud=#{asUsuario}
+		where id_furat_temp=#{alIdSiniestro}
+	</update>
+	
+	<update id="actuRetroPsDetalle">
+		update pecono_reservas..res_mv_reserva_soa set 
+			retro_ps=#{adbValor}
+		where  id_furat_temp=#{alIdSiniestro} and   nro_mov=#{alNroMov}
+	</update>
+	
+	<insert id="insertReservasCM">
+		INSERT INTO RES_MV_FACTURAS
+		(ID_SINIESTRO, NRO_MOV, ID_CUENTA, ID_FACTURA, USUARIO_AUD, MAQUINA_AUD, ESTADO_AUD, OPERACION_AUD, FECHA_MODIFICACION_AUD) 
+		VALUES (#{idSiniestro}, #{nroMov}, #{idCuenta}, #{idFactura}, #{usuario}, #{maquina}, 'A', 'I', getdate())
+	</insert>	
+	
+	<insert id="insertMaestroReserva" parameterType="com.gci.siarp.generales.domain.SaldosReserva">
+		INSERT INTO res_ma_reserva_soa  (
+		 	id_furat_temp, 			fecha_creacion, 		reserva_aux_funerario, 		reserva_it, 			reserva_ipp, 
+			reserva_pi, 			reserva_ps,				reserva_asistencial, 		reserva_aportes_salud, 	reserva_aportes_pension, 
+			recon_aux_funerario, 	recon_it,				recon_ipp, 					recon_pi, 				recon_ps,
+			recon_asistencial, 		recon_aportes_salud,	recon_aportes_pension,		fecha_siniestro,		usuario_aud,
+			maquina_aud,			estado_aud, 			operacion_aud, 				fecha_modificacion_aud,	reserva_honorarios,
+			reserva_otros,			recon_honorarios,		recon_otros,				lrs_mesada,				lrs_ibl,
+			lrs_nro_mesadas,		lrs_ibl_actu
+		)VALUES ( 
+			#{idSiniestro}, 		getdate(),				#{constAF},					#{constIT},				#{constIPP},
+			#{constPI},				#{constPS},				#{constAs},					#{constApS},			#{constApP},
+			#{constAF},				#{reconIT},				#{reconIPP},				#{reconPI},				#{reconPS},
+			#{reconAs},				#{reconApS},			#{reconApP},				#{fechaSiniestro},		#{usuario},
+			#{maquina},				'A',					'I',						getdate(),				#{constHon},
+			#{constOtr},			#{reconHon},			#{reconOtr},				#{mesada},				#{IBL},
+			#{nroMesadas},			#{IBLActualizado}
+		)  
+	</insert>
+	
+	<select id="nombreBeneficiario" resultType="String">
+	
+		select nombre1 ||isnull(' '+nombre2,'')||' '||apellido1||isnull(' '+apellido2,'') as nombre
+		from siarp..gral_ma_beneficiario
+		where 
+			id_tipo_doc = #{asTdocAfil} and 
+			id_persona = #{asDocAfil} and 
+			id_tipo_doc_ben = #{asTdocBenef} and 
+			id_beneficiario = #{asDocBenef}
+	
+	</select>
+	
+	<select id="traerBeneficiarios" resultType="com.gci.siarp.generales.domain.BeneficiarioResMatem">
+		exec spp_ei_reserv @as_tdoc = #{asTDoc}, @as_docu = #{asDocu}, @ad_fecha_corte = #{adFechaCorte}
+	</select>
+	
+	<select id="pension2b" resultType="com.gci.siarp.generales.domain.PensionNewNota">
+		exec spp_res_matem_2b_chained
+			@tdoc = #{asTDoc},			@docu=#{asDocu},			@tipo_pension=#{asTipoPension},		@edad1=#{adbEdad1},
+			@edad2=#{adbEdad2},			@edad3=#{adbEdad3},			@tipopersona1=#{asTipoPer1},		@tipopersona2=#{asTipoPer2},
+			@tipopersona3=#{asTipoPer3},@a47=#{asA47},				@p=#{adbP},							@par14=#{asPar14},
+			@mes_corte=#{aiMesCorte},	@k=#{adbK},					@sm=#{adbSmin},						@i=#{adbI},
+			@fecau=#{adFeCau},			@A=#{adbA},					@mortal_ini=#{adbMortIni1},			@mortal_ini_2v=#{adbMortIni2},
+			@mortal_ini_3v=#{adbMortIni3},@limit1=#{adbLimit1},		@limit2=#{adbLimit2},				@limit3=#{adbLimit3},
+			@version=#{asVersion},		@incsalud=#{adbIncSalud},	@incpensional=#{adbIncPension}
+			
+				
+	</select>
+	
+</mapper>
